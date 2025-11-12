@@ -1,0 +1,13 @@
+{
+  "name": "sentiment-aura-backend",
+  "version": "1.0.0",
+  "description": "FastAPI backend for Sentiment Aura emotion visualization",
+  "scripts": {
+    "start": "python start_server.py",
+    "dev": "python start_server.py",
+    "install": "pip install -r requirements.txt"
+  },
+  "keywords": ["fastapi", "sentiment-analysis", "groq", "emotion-visualization"],
+  "author": "",
+  "license": "MIT"
+}
