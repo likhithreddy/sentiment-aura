@@ -56,9 +56,9 @@ const KeywordBubble: React.FC<{
       }
     },
     hover: {
-      scale: 1.08,
-      y: -4,
-      filter: "brightness(1.2)",
+      scale: 1.05,
+      y: -2,
+      filter: "brightness(1.15)",
       transition: {
         type: "tween",
         ease: "easeInOut",
@@ -85,11 +85,7 @@ const KeywordBubble: React.FC<{
 
   return (
     <motion.div
-      className={`relative px-5 py-2.5 m-1 rounded-[25px] text-white font-medium font-display letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 ${
-        index % 3 === 0 ? 'text-sm' : index % 3 === 1 ? 'text-base' : 'text-lg'
-      } sm:${
-        index % 3 === 0 ? 'text-base' : index % 3 === 1 ? 'text-lg' : 'text-xl'
-      }`}
+      className="relative px-2 sm:px-2.5 py-1.5 m-0.5 rounded-[20px] text-white font-semibold font-display letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 text-sm flex items-center justify-center min-h-[2rem] max-w-[120px] sm:max-w-[140px]"
       variants={variants}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
@@ -111,7 +107,7 @@ const KeywordBubble: React.FC<{
         boxShadow: { duration: 0.8, ease: "easeInOut" },
       }}
     >
-      <span className="relative z-10 drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]">{keyword}</span>
+      <span className="relative z-10 drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)] truncate text-center">{keyword}</span>
       <div className="keyword-glow absolute -inset-1/2 w-[200%] h-[200%] rounded-[inherit] opacity-0 transition-opacity duration-300 hover:opacity-100 pointer-events-none"
         style={{
           background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)'
@@ -190,7 +186,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
       <div className="relative h-[calc(100%-3.75rem)] p-2 overflow-visible">
         <AnimatePresence mode="popLayout">
           {keywords.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-items-center">
+            <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1 sm:gap-1.5 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-items-center place-items-center">
               {keywords.map((keyword, index) => (
                   <KeywordBubble
                   key={`${keyword}-${index}`}
