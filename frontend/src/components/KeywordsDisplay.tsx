@@ -85,7 +85,7 @@ const KeywordBubble: React.FC<{
 
   return (
     <motion.div
-      className="relative px-2 sm:px-2.5 py-1.5 m-0.5 rounded-[20px] text-white font-semibold font-display letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 text-sm flex items-center justify-center min-h-[2rem] max-w-[120px] sm:max-w-[140px]"
+      className="relative px-1.5 sm:px-2 py-1 m-0.5 rounded-[16px] text-white font-semibold font-montserrat letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 text-xs flex items-center justify-center min-h-[1.75rem] max-w-[90px] sm:max-w-[110px]"
       variants={variants}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
@@ -171,7 +171,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
 
   return (
     <motion.div
-      className="fixed bottom-0 left-0 w-full h-[calc(25vh-1.25rem)] bg-gradient-to-t from-black/25 to-black/15 backdrop-blur-sm border-t border-white/8 p-5 text-white font-display z-[50] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col"
+      className="fixed bottom-0 left-0 w-full h-[calc(33vh-1.25rem)] bg-gradient-to-t from-black/25 to-black/15 backdrop-blur-sm p-5 text-white font-display z-[50] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -180,13 +180,13 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
         className="mb-4 border-b border-white/10 pb-3"
         variants={headerVariants}
       >
-        <h3 className="m-0 text-lg font-bold text-white/95 font-display letter-spacing-[0.1em] uppercase opacity-90">Keywords</h3>
+        <h3 className="m-0 text-lg font-bold text-white/95 font-montserrat letter-spacing-[0.1em] uppercase opacity-90">Keywords</h3>
       </motion.div>
 
       <div className="relative h-[calc(100%-3.75rem)] p-2 overflow-visible">
         <AnimatePresence mode="popLayout">
           {keywords.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-1 sm:gap-1.5 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-items-center place-items-center">
+            <div className="grid grid-cols-6 sm:grid-cols-12 md:grid-cols-16 lg:grid-cols-20 gap-0.5 sm:gap-1 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-items-center place-items-center">
               {keywords.map((keyword, index) => (
                   <KeywordBubble
                   key={`${keyword}-${index}`}
@@ -200,7 +200,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
           ) : (
             <motion.div
               key="placeholder"
-              className="text-white/60 italic text-lg text-center w-full"
+              className="text-white/60 italic text-lg text-center w-full font-montserrat"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{
                 opacity: 1,
@@ -215,7 +215,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
             >
               <div className="flex flex-col items-center gap-3">
                 <Sparkles size={28} className="opacity-70 animate-pulse" />
-                <div className="text-white/70 text-base font-medium">Keywords will appear here...</div>
+                <div className="text-white/70 text-base font-medium font-montserrat">Keywords will appear here...</div>
               </div>
             </motion.div>
           )}

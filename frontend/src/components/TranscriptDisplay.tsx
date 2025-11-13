@@ -48,9 +48,9 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
 
   return (
     // Semi-transparent tunnel panel for scrolling area
-    <div className="fixed top-[45vh] left-0 right-0 h-32 overflow-hidden z-[60]">
+    <div className="fixed top-[33vh] left-0 right-0 h-48 overflow-hidden z-[60]">
       {/* Glass effect panel with tunnel appearance */}
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-24 bg-black/20 backdrop-blur-sm border-y border-white/10">
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-32 bg-black/20 backdrop-blur-sm border-y border-white/10">
         {/* Gradient edges for tunnel depth effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20" />
@@ -69,7 +69,7 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
             }}
           >
             {/* Single content for proper ticker scrolling */}
-            <span className="text-4xl font-light leading-relaxed text-white/95 font-display tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] px-4">
+            <span className="text-6xl font-bold leading-relaxed text-white/95 font-montserrat tracking-wide drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] px-4">
               {displayText}
             </span>
           </motion.div>

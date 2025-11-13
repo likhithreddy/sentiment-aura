@@ -32,28 +32,18 @@ const Controls: React.FC<ControlsProps> = ({
 
   const buttonState = getButtonState();
 
-  // Button variants for different states
-  const buttonVariants = {
-    connecting: {
-      scale: 1,
-      backgroundColor: "rgb(156, 163, 175)", // gray-400
-    },
-    ready: {
-      scale: 1,
-      backgroundColor: "rgb(255, 255, 255)", // white
-    },
-    recording: {
-      scale: 1,
-      backgroundColor: "rgb(239, 68, 68)", // red-500
-    },
-    hover: {
-      scale: 1.05,
-      transition: { duration: 0.2 },
-    },
-    tap: {
-      scale: 0.95,
-      transition: { duration: 0.1 },
-    },
+  // Button variants for different states - Tailwind-based
+  const getButtonStyles = () => {
+    switch (buttonState) {
+      case "connecting":
+        return "bg-gray-400 text-white cursor-not-allowed";
+      case "ready":
+        return "bg-white text-gray-900 hover:bg-gray-100 cursor-pointer shadow-lg";
+      case "recording":
+        return "bg-red-500 text-white hover:bg-red-600 cursor-pointer shadow-lg";
+      default:
+        return "bg-white text-gray-900 hover:bg-gray-100 cursor-pointer shadow-lg";
+    }
   };
 
   // Text variants for smooth transitions
@@ -77,26 +67,15 @@ const Controls: React.FC<ControlsProps> = ({
           <motion.button
             onClick={isRecording ? onStop : onStart}
             disabled={isDisabled}
-            variants={buttonVariants}
-            animate={buttonState}
-            whileHover={!isDisabled ? "hover" : undefined}
-            whileTap={!isDisabled ? "tap" : undefined}
+            whileHover={!isDisabled ? { scale: 1.05 } : undefined}
+            whileTap={!isDisabled ? { scale: 0.95 } : undefined}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             className={`
-              rounded-full shadow-lg transition-all duration-200 focus:outline-none focus:ring-4
-              flex items-center justify-center font-semibold text-sm font-display overflow-hidden
-              px-4 py-2 h-10 sm:h-11 lg:h-12 min-w-[100px]
-              ${isDisabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}
-              ${
-                buttonState === "ready"
-                  ? "text-gray-900 hover:bg-gray-50 focus:ring-white/20"
-                  : "text-white"
-              }
-              ${
-                buttonState === "recording"
-                  ? "hover:bg-red-600 focus:ring-red-300"
-                  : ""
-              }
+              ${getButtonStyles()}
+              rounded-full transition-all duration-200 focus:outline-none focus:ring-4
+              flex items-center justify-center font-semibold text-lg font-montserrat overflow-hidden
+              px-6 py-3 h-14 sm:h-16 min-w-[120px]
+              focus:ring-white/20
             `}
           >
             <AnimatePresence mode="wait">
@@ -123,8 +102,8 @@ const Controls: React.FC<ControlsProps> = ({
                   exit="exit"
                   className="flex items-center justify-center gap-1 w-full"
                 >
-                  <PlayIcon className="w-4 h-4" />
-                  Start
+                  <PlayIcon className="w-5 h-5" />
+                  <span className="pl-3">Start</span>
                 </motion.div>
               )}
 
@@ -139,16 +118,17 @@ const Controls: React.FC<ControlsProps> = ({
                 >
                   <motion.div
                     animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [1, 0.7, 1],
+                      scale: [1, 1.4, 1],
+                      opacity: [1, 0.6, 1],
                     }}
                     transition={{
-                      duration: 1.5,
+                      duration: 1.2,
                       repeat: Infinity,
                       ease: "easeInOut",
                     }}
+                    className="drop-shadow-lg"
                   >
-                    <StopIconSolid className="w-4 h-4" />
+                    <StopIconSolid className="w-5 h-5" />
                   </motion.div>
                   Stop
                 </motion.div>
@@ -163,15 +143,15 @@ const Controls: React.FC<ControlsProps> = ({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           className="flex items-center justify-center aspect-square
-                     w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12
-                     bg-gray-100/90 text-gray-600 rounded-full shadow-md
+                     w-14 h-14 sm:w-16 sm:h-16 lg:w-16 lg:h-16
+                     bg-white/90 text-gray-700 rounded-full shadow-lg
                      transition-all duration-200 focus:outline-none focus:ring-4
-                     focus:ring-gray-100/20 hover:bg-white hover:text-gray-900
-                     hover:shadow-lg active:scale-95"
+                     focus:ring-white/30 hover:bg-white hover:text-gray-900
+                     hover:shadow-xl active:scale-95"
         >
           <RotateCcw
-            size={20}
-            className="w-4 h-4 sm:w-5 sm:h-5 lg:w-5 lg:h-5"
+            size={24}
+            className="w-6 h-6 sm:w-7 sm:h-7 lg:w-7 lg:h-7"
           />
         </motion.button>
       </div>

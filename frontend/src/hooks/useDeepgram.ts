@@ -281,7 +281,7 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       processor.connect(audioContext.destination);
 
       console.log('🚀 Web Audio API pipeline active and sending PCM audio to Deepgram...');
-      success('Recording Started', 'Listening for speech. Click stop when you are finished.');
+      info('Listening', 'Speech recognition is now active and listening for your input.');
 
       setConnectionState(prev => ({
         ...prev,
@@ -303,7 +303,7 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
 
   const stopRecording = useCallback(() => {
     console.log('🛑 Stopping Deepgram transcription...');
-    info('Recording Stopped', 'Speech recognition has been stopped.');
+    info('Stopped', 'Speech recognition has been stopped.');
 
     // Disconnect Web Audio API components
     if (scriptProcessorRef.current && sourceRef.current && audioContextRef.current) {

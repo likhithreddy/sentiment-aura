@@ -23,8 +23,9 @@ module.exports = {
         }
       },
       fontFamily: {
-        'display': ['Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'display': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'sans': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        'montserrat': ['Montserrat', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       backdropBlur: {
         xs: '0.125rem',
