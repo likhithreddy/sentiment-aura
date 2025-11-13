@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mic, Square, RotateCcw } from 'lucide-react';
 
 interface ControlsProps {
   isRecording: boolean;
@@ -6,6 +8,7 @@ interface ControlsProps {
   error: string | null;
   onStart: () => void;
   onStop: () => void;
+  onReset: () => void;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -14,163 +17,63 @@ const Controls: React.FC<ControlsProps> = ({
   error,
   onStart,
   onStop,
+  onReset,
 }) => {
+
+  // Animation variants for buttons
+  const buttonVariants = {
+    idle: { scale: 1 },
+    hover: { scale: 1.05 },
+    tap: { scale: 0.95 },
+    disabled: { scale: 1, opacity: 0.6 }
+  };
+
   return (
-    <div className="controls">
-      <button
-        className={`control-button ${isRecording ? 'stop' : 'start'} ${
-          isConnected ? 'connected' : ''
-        }`}
-        onClick={isRecording ? onStop : onStart}
-        disabled={!isRecording && isConnected}
-      >
-        {isRecording ? (
-          <>
-            <span className="pulse-dot"></span>
-            Stop
-          </>
-        ) : (
-          <>
-            <span className="microphone-icon">🎤</span>
-            Start
-          </>
-        )}
-      </button>
+    <div className="fixed top-0 left-0 right-0 h-16 z-[100] bg-black/20 backdrop-blur-md border-b border-white/10">
+      <div className="flex items-center justify-between h-full px-8">
+        {/* Left spacer */}
+        <div className="w-12" />
 
-      {error && (
-        <div className="error-message">
-          ⚠️ {error}
+        {/* Start Button - Centered */}
+        <div className="flex-1 flex justify-center">
+          <motion.button
+            onClick={isRecording ? onStop : onStart}
+            disabled={!isRecording && isConnected}
+            variants={buttonVariants}
+            initial="idle"
+            whileHover="hover"
+            whileTap="tap"
+            animate={!isRecording && isConnected ? 'disabled' : 'idle'}
+            className={`inline-flex items-center gap-3 px-8 py-3 bg-white text-gray-900 font-semibold rounded-full shadow-lg transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-white/20 ${
+              !isRecording && isConnected
+                ? 'opacity-60 cursor-not-allowed bg-white/70'
+                : 'hover:bg-gray-100 hover:shadow-xl hover:scale-105 active:scale-95'
+            }`}
+          >
+            <motion.div
+              animate={{ rotate: isRecording ? 360 : 0 }}
+              transition={{ duration: 2, repeat: isRecording ? Infinity : 0, ease: "linear" }}
+            >
+              {isRecording ? <Square size={20} /> : <Mic size={20} />}
+            </motion.div>
+            <span>{isRecording ? 'Stop' : 'Start'}</span>
+          </motion.button>
         </div>
-      )}
 
-      {isRecording && !isConnected && (
-        <div className="connecting-indicator">
-          🔄 Connecting to Deepgram...
+        {/* Reset Button - Right side */}
+        <div className="w-12 flex justify-end">
+          <motion.button
+            onClick={onReset}
+            variants={buttonVariants}
+            initial="idle"
+            whileHover="hover"
+            whileTap="tap"
+            className="flex items-center justify-center w-12 h-12 bg-gray-100/90 text-gray-600 rounded-full shadow-md transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-gray-100/20 hover:bg-white hover:text-gray-900 hover:shadow-lg hover:scale-110 active:scale-95"
+          >
+            <RotateCcw size={20} />
+          </motion.button>
         </div>
-      )}
-
-      {isRecording && isConnected && (
-        <div className="status-indicator">
-          🎤 Recording & Transcribing...
-        </div>
-      )}
-
-      <style>{`
-        .controls {
-          position: fixed;
-          bottom: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          z-index: 100;
-        }
-
-        .control-button {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 16px 32px;
-          border: none;
-          border-radius: 50px;
-          font-size: 18px;
-          font-weight: 600;
-          color: white;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-          backdrop-filter: blur(10px);
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          outline: none;
-          min-width: 140px;
-          justify-content: center;
-        }
-
-        .control-button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-        }
-
-        .control-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .control-button.start {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .control-button.stop {
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .control-button.connected {
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .pulse-dot {
-          width: 12px;
-          height: 12px;
-          background: #ff4757;
-          border-radius: 50%;
-          animation: pulse 1.5s infinite;
-        }
-
-        .microphone-icon {
-          font-size: 20px;
-        }
-
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(255, 71, 87, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
-          }
-        }
-
-        .error-message {
-          background: rgba(255, 71, 87, 0.9);
-          color: white;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 14px;
-          box-shadow: 0 2px 10px rgba(255, 71, 87, 0.3);
-          backdrop-filter: blur(10px);
-        }
-
-        .connecting-indicator,
-        .status-indicator {
-          background: rgba(79, 172, 254, 0.9);
-          color: white;
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-size: 14px;
-          box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
-          backdrop-filter: blur(10px);
-          animation: fadeInOut 1.5s infinite;
-        }
-
-        .status-indicator {
-          background: rgba(76, 175, 80, 0.9);
-          box-shadow: 0 2px 10px rgba(76, 175, 80, 0.3);
-        }
-
-        @keyframes fadeInOut {
-          0%, 100% {
-            opacity: 0.7;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-      `}</style>
+      </div>
     </div>
   );
 };

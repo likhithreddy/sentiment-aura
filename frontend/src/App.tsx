@@ -41,6 +41,11 @@ const App: React.FC = () => {
     deepgram.stopRecording();
   }, [deepgram]);
 
+  const handleReset = useCallback(() => {
+    setFinalTranscripts([]);
+    setCurrentInterim(null);
+  }, []);
+
   return (
     <div className="app">
       <PerlinAura
@@ -61,6 +66,7 @@ const App: React.FC = () => {
         error={deepgram.error}
         onStart={handleStart}
         onStop={handleStop}
+        onReset={handleReset}
       />
     </div>
   );

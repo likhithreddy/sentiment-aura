@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { motion, useAnimation } from 'framer-motion';
+import { Mic } from 'lucide-react';
 import { TranscriptSegment } from '../types';
 
 interface TranscriptDisplayProps {
@@ -8,6 +10,8 @@ interface TranscriptDisplayProps {
 
 const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, interimTranscript }) => {
   const [displayText, setDisplayText] = useState<string>('');
+  const [isAnimating, setIsAnimating] = useState(false);
+  const tickerControls = useAnimation();
 
   useEffect(() => {
     // Combine final transcript segments
@@ -23,82 +27,68 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
     setDisplayText(combinedText);
   }, [transcripts, interimTranscript]);
 
-  return (
-    <div className="transcript-display">
-      <div className="transcript-header">
-        <h3>Transcription</h3>
-        {interimTranscript && <span className="listening-indicator">🎤 Listening...</span>}
-      </div>
-      <div className="transcript-content">
-        {displayText || (
-          <div className="transcript-placeholder">
-            Start speaking to see the transcription...
-          </div>
-        )}
-      </div>
-      <style>{`
-        .transcript-display {
-          position: fixed;
-          bottom: 20px;
-          left: 20px;
-          width: 400px;
-          max-height: 200px;
-          background: rgba(0, 0, 0, 0.7);
-          backdrop-filter: blur(10px);
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 16px;
-          color: white;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          z-index: 10; /* Content layer */
-        }
+  // Start ticker animation when text changes
+  useEffect(() => {
+    if (displayText && !isAnimating) {
+      setIsAnimating(true);
 
-        .transcript-header {
-          margin-bottom: 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-          padding-bottom: 8px;
-        }
+      // Calculate dynamic scroll duration based on text length
+      const scrollDuration = Math.max(10, displayText.length * 0.08);
 
-        .transcript-header h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.9);
-          display: inline-block;
-        }
-
-        .listening-indicator {
-          margin-left: 10px;
-          font-size: 14px;
-          animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-
-        .transcript-content {
-          font-size: 14px;
-          line-height: 1.5;
-          color: rgba(255, 255, 255, 0.8);
-          overflow-y: auto;
-          max-height: 140px;
-        }
-
-        .transcript-placeholder {
-          color: rgba(255, 255, 255, 0.5);
-          font-style: italic;
-        }
-
-        @media (max-width: 768px) {
-          .transcript-display {
-            width: calc(100% - 40px);
-            max-width: 400px;
+      tickerControls.start({
+        x: ["100%", "-200%"],
+        transition: {
+          x: {
+            duration: scrollDuration,
+            ease: "linear",
+            repeat: Infinity,
+            repeatDelay: 2, // Pause before repeating
           }
         }
-      `}</style>
-    </div>
+      });
+    } else if (!displayText) {
+      tickerControls.stop();
+      setIsAnimating(false);
+    }
+  }, [displayText, tickerControls, isAnimating]);
+
+  return (
+    <div className="fixed top-16 left-0 w-full h-[calc(75vh-4rem)] bg-gradient-to-b from-black/80 via-black/60 to-black/80 backdrop-blur-md border-b border-white/10 p-8 text-white font-sans z-[50] overflow-hidden flex flex-col">
+      {/* Listening indicator */}
+      <div className="flex items-center justify-end mb-4">
+        {interimTranscript && (
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="flex items-center gap-2 text-white/70 text-sm"
+          >
+            <Mic size={16} className="animate-pulse" />
+            <span>Listening...</span>
+          </motion.div>
+        )}
+      </div>
+
+      <div className="flex-1 flex items-center justify-center relative overflow-hidden whitespace-nowrap">
+        <motion.div
+          animate={tickerControls}
+          initial={{ x: "100%" }}
+          whileHover={{ animationPlayState: "paused" }}
+          className="text-3xl font-semibold leading-tight text-white/92 font-display letter-spacing-[-0.02em] whitespace-nowrap pr-24 absolute will-change-transform text-shadow-[0_2px_10px_rgba(0,0,0,0.3)]"
+          style={{
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            transform: 'translateZ(0)'
+          }}
+        >
+          {displayText || (
+            <div className="text-white/60 italic text-2xl font-medium text-center whitespace-normal max-w-[80%]">
+              Start speaking to see the transcription scroll across the screen...
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+  </div>
   );
 };
 

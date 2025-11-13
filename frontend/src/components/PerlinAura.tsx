@@ -7,240 +7,232 @@ interface PerlinAuraProps {
   isRecording: boolean;
 }
 
+// Flow Field Particle class
+class FlowParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  prevX: number;
+  prevY: number;
+  maxSpeed: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.vy = 0;
+    this.prevX = x;
+    this.prevY = y;
+    this.maxSpeed = 2;
+  }
+
+  follow(vectors: number[][][], cols: number, rows: number, scale: number) {
+    const x = Math.floor(this.x / scale);
+    const y = Math.floor(this.y / scale);
+    const col = Math.min(Math.max(x, 0), cols - 1);
+    const row = Math.min(Math.max(y, 0), rows - 1);
+
+    const force = vectors[row]?.[col] || [0, 0];
+    this.vx += force[0] * 0.5;
+    this.vy += force[1] * 0.5;
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+
+    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    if (speed > this.maxSpeed) {
+      this.vx = (this.vx / speed) * this.maxSpeed;
+      this.vy = (this.vy / speed) * this.maxSpeed;
+    }
+
+    // Limit acceleration
+    this.vx *= 0.95;
+    this.vy *= 0.95;
+  }
+
+  edges(width: number, height: number) {
+    if (this.x < 0) {
+      this.x = width;
+      this.prevX = width;
+    }
+    if (this.x > width) {
+      this.x = 0;
+      this.prevX = 0;
+    }
+    if (this.y < 0) {
+      this.y = height;
+      this.prevY = height;
+    }
+    if (this.y > height) {
+      this.y = 0;
+      this.prevY = 0;
+    }
+  }
+
+  draw(p5: P5Instance, hue: number, alpha: number) {
+    p5.push();
+    p5.colorMode(p5.HSB, 360, 100, 100, 100);
+    p5.stroke(hue, 70, 90, alpha);
+    p5.strokeWeight(1);
+    p5.line(this.prevX, this.prevY, this.x, this.y);
+    p5.pop();
+
+    this.prevX = this.x;
+    this.prevY = this.y;
+  }
+}
+
 const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) => {
   const timeRef = useRef(0);
-  const particlesRef = useRef<Array<{
-    x: number,
-    y: number,
-    vx: number,
-    vy: number,
-    life: number
-  }>>([]);
+  const particlesRef = useRef<FlowParticle[]>([]);
+  const flowFieldRef = useRef<number[][][]>([]);
 
   const setup = (p5: P5Instance, canvasContainer: Element) => {
-    console.log('🎨 P5.js setup starting...');
+    console.log('🎨 Flow field setup starting...');
 
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
     console.log('🎨 Canvas created:', { width: p5.width, height: p5.height });
 
-    // Initialize particles
+    // Initialize flow field particles
+    const numParticles = 500;
     particlesRef.current = [];
-    for (let i = 0; i < 100; i++) {
-      particlesRef.current.push({
-        x: p5.random(p5.width),
-        y: p5.random(p5.height),
-        vx: 0,
-        vy: 0,
-        life: p5.random()
-      });
+    for (let i = 0; i < numParticles; i++) {
+      particlesRef.current.push(new FlowParticle(
+        p5.random(p5.width),
+        p5.random(p5.height)
+      ));
     }
 
-    console.log('🎨 P5.js setup completed successfully');
+    console.log('🎨 Flow field setup completed successfully');
   };
 
   const draw = (p5: P5Instance) => {
-      timeRef.current += 0.01;
+    timeRef.current += 0.005;
 
-      // Get sentiment data with defaults
-      const sentiment = sentimentData?.sentiment || 0;
-      const sentimentLabel = sentimentData?.sentiment_label || 'neutral';
-      const emotionScores = sentimentData?.emotion_scores || {
-        joy: 0.2, sadness: 0.2, anger: 0.2, fear: 0.2, surprise: 0.1, disgust: 0.1
-      };
+    // Get sentiment data with defaults
+    const sentiment = sentimentData?.sentiment || 0;
+    const sentimentLabel = sentimentData?.sentiment_label || 'neutral';
+    const emotionScores = sentimentData?.emotion_scores || {
+      joy: 0.2, sadness: 0.2, anger: 0.2, fear: 0.2, surprise: 0.1, disgust: 0.1
+    };
 
-      // Debug logging every 300 frames (~5 seconds)
-      if (p5.frameCount % 300 === 0 && sentimentData) {
-        console.log('🎨 Perlin visualization:', {
-          sentiment,
-          sentimentLabel,
-          isRecording
-        });
+    // Calculate energy and chaos based on emotions
+    const energy = Math.max(
+      emotionScores.joy * 2.0,
+      emotionScores.surprise * 1.8,
+      emotionScores.anger * 1.5,
+      emotionScores.fear * 1.0,
+      emotionScores.sadness * 0.5
+    );
+
+    // Map sentiment to color palette
+    let baseHue: number;
+    if (sentimentLabel === 'positive') {
+      baseHue = 30 + sentiment * 30; // Orange to yellow
+    } else if (sentimentLabel === 'negative') {
+      baseHue = 240 + sentiment * 40; // Blue to purple
+    } else {
+      baseHue = 120 + sentiment * 60; // Green to cyan
+    }
+
+    // Flow field setup
+    const scale = 20;
+    const cols = Math.floor(p5.width / scale);
+    const rows = Math.floor(p5.height / scale);
+    let zoff = timeRef.current;
+    const increment = 0.1 + energy * 0.05;
+
+    // Clear background with fade effect
+    if (isRecording) {
+      p5.background(0, 10);
+    } else {
+      p5.background(0, 25);
+    }
+
+    // Generate flow field
+    let yoff = 0;
+    flowFieldRef.current = [];
+    for (let y = 0; y < rows; y++) {
+      let xoff = 0;
+      flowFieldRef.current[y] = [];
+      for (let x = 0; x < cols; x++) {
+        const angle = p5.noise(xoff, yoff, zoff) * p5.TWO_PI * 2;
+        const v = p5.createVector(p5.cos(angle), p5.sin(angle));
+        flowFieldRef.current[y][x] = [v.x, v.y];
+        xoff += increment;
       }
+      yoff += increment;
+    }
 
-      // Calculate energy and movement parameters
-      const energy = Math.max(
-        emotionScores.joy * 1.5,
-        emotionScores.surprise * 2.0,
-        emotionScores.anger * 1.2,
-        emotionScores.fear * 0.8,
-        emotionScores.sadness * 0.4
-      );
+    // Update and draw particles
+    const particleAlpha = isRecording ? 30 + energy * 20 : 15;
 
-      // Clear with fade effect
-      p5.background(0, 5);
+    particlesRef.current.forEach(particle => {
+      particle.follow(flowFieldRef.current, cols, rows, scale);
+      particle.update();
+      particle.edges(p5.width, p5.height);
 
-      // Map sentiment to color palette
-      let baseHue: number;
-      let saturation: number;
-      let brightness: number;
-
-      if (sentimentLabel === 'positive') {
-        baseHue = 30 + sentiment * 30; // Orange to yellow
-        saturation = 70 + emotionScores.joy * 30;
-        brightness = 60 + emotionScores.joy * 40;
-      } else if (sentimentLabel === 'negative') {
-        baseHue = 240 + sentiment * 40; // Blue to purple
-        saturation = 70 + Math.max(emotionScores.sadness, emotionScores.anger) * 30;
-        brightness = 40 + Math.max(emotionScores.sadness, emotionScores.anger) * 40;
-      } else {
-        baseHue = 120 + sentiment * 60; // Green to cyan
-        saturation = 40;
-        brightness = 70;
+      if (isRecording || p5.frameCount % 3 === 0) {
+        particle.draw(p5, baseHue, particleAlpha);
       }
+    });
 
-      // Dynamic noise parameters
-      const noiseScale = 0.005 + energy * 0.015;
-      const timeScale = 0.002 + energy * 0.008;
+    // Recording indicator (minimal, no emoji)
+    if (isRecording) {
+      const pulseAlpha = 50 + p5.sin(timeRef.current * 4) * 30;
+      const pulseSize = 8 + p5.sin(timeRef.current * 4) * 3;
 
-      // Create Perlin noise field visualization using p5.js noise()
-      const resolution = 25;
-      const cols = Math.floor(p5.width / resolution);
-      const rows = Math.floor(p5.height / resolution);
+      p5.push();
+      p5.colorMode(p5.HSB, 360, 100, 100, 100);
+      p5.translate(p5.width - 40, 40);
 
-      for (let i = 0; i < cols; i++) {
-        for (let j = 0; j < rows; j++) {
-          const x = i * resolution;
-          const y = j * resolution;
+      // Simple circle indicator
+      p5.noStroke();
+      p5.fill(baseHue, 60, 90, pulseAlpha);
+      p5.circle(0, 0, pulseSize);
+      p5.pop();
+    }
 
-          // Multi-octave Perlin noise using p5.js built-in noise()
-          const noise1 = p5.noise(i * noiseScale, j * noiseScale, timeRef.current * timeScale);
-          const noise2 = p5.noise(i * noiseScale * 2, j * noiseScale * 2, timeRef.current * timeScale * 1.5);
-          const noise3 = p5.noise(i * noiseScale * 4, j * noiseScale * 4, timeRef.current * timeScale * 2);
-
-          // Combine octaves
-          const combinedNoise = noise1 * 0.5 + noise2 * 0.3 + noise3 * 0.2;
-
-          // Map noise to visual properties
-          const hueOffset = combinedNoise * 40 - 20;
-          const finalHue = (baseHue + hueOffset + 360) % 360;
-          const size = resolution * (0.3 + combinedNoise * 1.2);
-          const alpha = isRecording ?
-            10 + combinedNoise * energy * 50 :
-            5 + combinedNoise * 10;
-
-          // Draw noise field element
-          p5.push();
-          p5.colorMode(p5.HSB, 360, 100, 100, 100);
-          p5.noStroke();
-          p5.fill(finalHue, saturation, brightness, alpha);
-          p5.circle(x, y, size);
-          p5.pop();
-
-          // Flow visualization with connecting lines
-          if (i < cols - 1 && combinedNoise > 0.6 && isRecording) {
-            const nextNoise = p5.noise((i + 1) * noiseScale, j * noiseScale, timeRef.current * timeScale);
-
-            if (nextNoise > 0.6) {
-              p5.push();
-              p5.colorMode(p5.HSB, 360, 100, 100, 100);
-              p5.stroke(finalHue, saturation, brightness, combinedNoise * 20);
-              p5.strokeWeight(1 + energy * 2);
-              p5.line(x, y, (i + 1) * resolution, y);
-              p5.pop();
-            }
-          }
-        }
-      }
-
-      // Update and draw particles
-      if (isRecording) {
-        particlesRef.current.forEach(particle => {
-          // Update particle physics
-          const noiseX = p5.noise(particle.x * noiseScale, particle.y * noiseScale, timeRef.current * timeScale);
-          const noiseY = p5.noise(particle.x * noiseScale + 100, particle.y * noiseScale + 100, timeRef.current * timeScale);
-
-          particle.vx += noiseX * energy * 0.5;
-          particle.vy += noiseY * energy * 0.5;
-          particle.vx *= 0.95; // Damping
-          particle.vy *= 0.95;
-
-          particle.x += particle.vx;
-          particle.y += particle.vy;
-
-          // Wrap around edges
-          if (particle.x < 0) particle.x = p5.width;
-          if (particle.x > p5.width) particle.x = 0;
-          if (particle.y < 0) particle.y = p5.height;
-          if (particle.y > p5.height) particle.y = 0;
-
-          // Update life
-          particle.life += 0.02;
-          if (particle.life > 1) particle.life = 0;
-
-          // Draw particle
-          const particleSize = 2 + energy * 3 + particle.life * 2;
-          const particleAlpha = 30 + particle.life * 40;
-
-          p5.push();
-          p5.colorMode(p5.HSB, 360, 100, 100, 100);
-          p5.noStroke();
-          p5.fill(baseHue, saturation, brightness, particleAlpha);
-          p5.circle(particle.x, particle.y, particleSize);
-          p5.pop();
-        });
-      }
-
-      // Emotion-based overlay effects
-      if (emotionScores.joy > 0.7 && isRecording) {
-        // Sparkle effect for joy
-        for (let i = 0; i < 3; i++) {
+    // Special effects based on emotions (only when recording)
+    if (isRecording) {
+      // Joy effect - occasional bright particles
+      if (emotionScores.joy > 0.6 && p5.frameCount % 10 === 0) {
+        for (let i = 0; i < 2; i++) {
           const x = p5.random(p5.width);
           const y = p5.random(p5.height);
-          const size = 1 + p5.random(3);
-
           p5.push();
           p5.colorMode(p5.HSB, 360, 100, 100, 100);
           p5.noStroke();
-          p5.fill(60, 100, 100, 40 + p5.random(60));
-          p5.circle(x, y, size);
+          p5.fill(45, 100, 95, 30 + p5.random(40));
+          p5.circle(x, y, 1 + p5.random(2));
           p5.pop();
         }
       }
 
-      if (emotionScores.anger > 0.6 && isRecording) {
-        // Jagged lightning effect for anger
+      // Anger effect - occasional sharp lines
+      if (emotionScores.anger > 0.7 && p5.frameCount % 30 === 0) {
         p5.push();
         p5.colorMode(p5.HSB, 360, 100, 100, 100);
-        p5.stroke(0, 80, 60, 20 + emotionScores.anger * 30);
-        p5.strokeWeight(1 + emotionScores.anger * 2);
+        p5.stroke(0, 70, 70, 15);
+        p5.strokeWeight(1);
         p5.noFill();
-
         p5.beginShape();
         let x = p5.random(p5.width);
         let y = 0;
         p5.vertex(x, y);
-
-        for (let j = 0; j < 5; j++) {
-          x += p5.random(-100, 100);
-          y += p5.height / 5;
+        for (let j = 0; j < 3; j++) {
+          x += p5.random(-50, 50);
+          y += p5.height / 3;
           p5.vertex(x, y);
         }
         p5.endShape();
         p5.pop();
       }
-
-      // Recording indicator
-      if (isRecording) {
-        const pulseSize = 20 + p5.sin(timeRef.current * 5) * 10;
-        const pulseAlpha = 60 + p5.sin(timeRef.current * 3) * 30;
-
-        p5.push();
-        p5.colorMode(p5.HSB, 360, 100, 100, 100);
-        p5.translate(p5.width - 60, 60);
-
-        // Outer ring
-        p5.noFill();
-        p5.stroke(baseHue, saturation, brightness, pulseAlpha);
-        p5.strokeWeight(3);
-        p5.circle(0, 0, pulseSize * 2);
-
-        // Inner pulse
-        p5.noStroke();
-        p5.fill(baseHue, saturation, brightness, pulseAlpha);
-        p5.circle(0, 0, 12);
-        p5.pop();
-      }
-    };
+    }
+  };
 
   const windowResized = (p5: P5Instance) => {
     p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
