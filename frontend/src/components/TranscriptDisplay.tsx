@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { TranscriptSegment } from '../types';
 
 interface TranscriptDisplayProps {
@@ -9,8 +9,6 @@ interface TranscriptDisplayProps {
 
 const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, interimTranscript }) => {
   const [displayText, setDisplayText] = useState<string>('');
-  const [isAnimating, setIsAnimating] = useState(false);
-  const tickerControls = useAnimation();
 
   useEffect(() => {
     // Combine final transcript segments
@@ -26,50 +24,54 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
     setDisplayText(combinedText);
   }, [transcripts, interimTranscript]);
 
-  // Start ticker animation when text changes
-  useEffect(() => {
-    if (displayText && !isAnimating) {
-      setIsAnimating(true);
-
-      // Calculate dynamic scroll duration based on text length
-      const scrollDuration = Math.max(10, displayText.length * 0.08);
-
-      tickerControls.start({
-        x: ["100%", "-200%"],
-        transition: {
-          x: {
-            duration: scrollDuration,
-            ease: "linear",
-            repeat: Infinity,
-            repeatDelay: 2, // Pause before repeating
-          }
-        }
-      });
-    } else if (!displayText) {
-      tickerControls.stop();
-      setIsAnimating(false);
-    }
-  }, [displayText, tickerControls, isAnimating]);
-
   // Only render when there's content to display
   if (!displayText.trim()) {
     return null;
   }
 
+  // Calculate duration based on text length for consistent scrolling speed
+  const duration = Math.max(8, displayText.length * 0.15);
+
+  // Framer Motion variants for the ticker animation
+  const tickerVariants = {
+    animate: {
+      x: [0, -50],
+      transition: {
+        x: {
+          duration: duration,
+          ease: "linear",
+          repeat: Infinity,
+        },
+      },
+    },
+  };
+
   return (
-    <motion.div
-      animate={tickerControls}
-      initial={{ x: "100%" }}
-      whileHover={{ animationPlayState: "paused" }}
-      className="fixed top-32 text-3xl font-semibold leading-tight text-white font-display whitespace-nowrap will-change-transform z-[50]"
-      style={{
-        WebkitFontSmoothing: 'antialiased',
-        MozOsxFontSmoothing: 'grayscale',
-        transform: 'translateZ(0)'
-      }}
-    >
-      {displayText}
-    </motion.div>
+    // Container that defines the scrolling area
+    <div className="fixed top-24 left-0 right-0 h-20 overflow-hidden z-[50]">
+      {/* Center the ticker content vertically */}
+      <div className="flex items-center justify-center h-full">
+        {/* Animated wrapper that moves the content */}
+        <motion.div
+          variants={tickerVariants}
+          animate="animate"
+          className="flex whitespace-nowrap"
+          whileHover={{ animationPlayState: "paused" }}
+          style={{
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+          }}
+        >
+          {/* Duplicate content for seamless infinite scrolling */}
+          <span className="text-3xl font-semibold leading-tight text-white font-display pr-8">
+            {displayText}
+          </span>
+          <span className="text-3xl font-semibold leading-tight text-white font-display pr-8">
+            {displayText}
+          </span>
+        </motion.div>
+      </div>
+    </div>
   );
 };
 

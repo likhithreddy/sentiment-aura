@@ -30,10 +30,17 @@ export const useSentimentAnalysis = () => {
     }
   }, []);
 
+  const clearSentimentData = useCallback(() => {
+    setSentimentData(null);
+    setError(null);
+    setIsAnalyzing(false);
+  }, []);
+
   return {
     sentimentData,
     isAnalyzing,
     error,
     analyzeText,
+    clearSentimentData,
   };
 };

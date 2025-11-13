@@ -50,12 +50,7 @@ const Controls: React.FC<ControlsProps> = ({
                 : 'hover:bg-gray-100 hover:shadow-xl hover:scale-105 active:scale-95'
             }`}
           >
-            <motion.div
-              animate={{ rotate: isRecording ? 360 : 0 }}
-              transition={{ duration: 2, repeat: isRecording ? Infinity : 0, ease: "linear" }}
-            >
-              {isRecording ? <Square size={20} /> : <Mic size={20} />}
-            </motion.div>
+            {isRecording ? <Square size={20} /> : <Mic size={20} />}
             <span>{isRecording ? 'Stop' : 'Start'}</span>
           </motion.button>
         </div>

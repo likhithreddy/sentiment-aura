@@ -11,7 +11,7 @@ import './App.css';
 const App: React.FC = () => {
   const [finalTranscripts, setFinalTranscripts] = useState<TranscriptSegment[]>([]);
   const [currentInterim, setCurrentInterim] = useState<TranscriptSegment | null>(null);
-  const { analyzeText, sentimentData: hookSentimentData } = useSentimentAnalysis();
+  const { analyzeText, clearSentimentData, sentimentData: hookSentimentData } = useSentimentAnalysis();
 
   const deepgram = useDeepgram({
     onTranscript: useCallback((transcript: TranscriptSegment) => {
@@ -42,9 +42,18 @@ const App: React.FC = () => {
   }, [deepgram]);
 
   const handleReset = useCallback(() => {
+    // Clear all transcript data
     setFinalTranscripts([]);
     setCurrentInterim(null);
-  }, []);
+
+    // Clear sentiment analysis data (keywords and sentiment)
+    clearSentimentData();
+
+    // Stop recording if currently active
+    if (deepgram.isRecording) {
+      deepgram.stopRecording();
+    }
+  }, [clearSentimentData, deepgram]);
 
   return (
     <div className="app">
