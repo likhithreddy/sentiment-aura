@@ -35,7 +35,7 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
   // Framer Motion variants for the ticker animation
   const tickerVariants = {
     animate: {
-      x: [0, -50],
+      x: ["100%", "-100%"],
       transition: {
         x: {
           duration: duration,
@@ -62,10 +62,7 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
             MozOsxFontSmoothing: 'grayscale',
           }}
         >
-          {/* Duplicate content for seamless infinite scrolling */}
-          <span className="text-3xl font-semibold leading-tight text-white font-display pr-8">
-            {displayText}
-          </span>
+          {/* Single content for proper ticker scrolling */}
           <span className="text-3xl font-semibold leading-tight text-white font-display pr-8">
             {displayText}
           </span>

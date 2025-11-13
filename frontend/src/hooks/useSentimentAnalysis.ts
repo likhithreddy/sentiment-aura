@@ -21,7 +21,30 @@ export const useSentimentAnalysis = () => {
         text: text,
       });
 
-      setSentimentData(response.data);
+      setSentimentData(prev => {
+        // If no previous data, use new data directly
+        if (!prev) {
+          return response.data;
+        }
+
+        // Merge new keywords with existing ones, avoiding duplicates
+        const existingKeywords = prev.keywords || [];
+        const newKeywords = response.data.keywords || [];
+        const allKeywords = [...existingKeywords];
+
+        // Add new keywords that don't already exist
+        newKeywords.forEach(keyword => {
+          if (!allKeywords.includes(keyword)) {
+            allKeywords.push(keyword);
+          }
+        });
+
+        // Return merged data with new sentiment and accumulated keywords
+        return {
+          sentiment: response.data.sentiment,
+          keywords: allKeywords
+        };
+      });
     } catch (err) {
       console.error('Error analyzing sentiment:', err);
       setError(err instanceof Error ? err.message : 'Analysis failed');
