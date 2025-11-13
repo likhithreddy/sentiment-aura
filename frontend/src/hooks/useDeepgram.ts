@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 import { ClientOptions } from '@deepgram/sdk';
 import { TranscriptSegment, ConnectionState } from '../types';
+import { useToast } from './useToast';
 
 interface UseDeepgramOptions {
   onTranscript?: (transcript: TranscriptSegment) => void;
@@ -12,9 +13,11 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     isRecording: false,
     isConnected: false,
+    isConnecting: false,
     error: null,
   });
 
+  const { success, error: toastError, warning, info } = useToast();
   const deepgramRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
@@ -50,10 +53,15 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
         throw new Error('Deepgram API key is not configured. Please check your .env file.');
       }
 
-      // Clear any previous errors
-      setConnectionState(prev => ({ ...prev, error: null }));
+      // Clear any previous errors and set connecting state
+      setConnectionState(prev => ({
+        ...prev,
+        error: null,
+        isConnecting: true,
+      }));
 
       console.log('Starting Deepgram connection with API key...');
+      info('Connecting', 'Establishing connection to speech recognition service...');
 
       // Initialize Deepgram client with proper configuration
       console.log('Initializing Deepgram client with API key...');
@@ -85,9 +93,11 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       // Handle connection events
       connection.on(LiveTranscriptionEvents.Open, () => {
         console.log('✅ Deepgram connection established successfully');
+        success('Connection Ready', 'Speech recognition service is connected and ready');
         setConnectionState(prev => ({
           ...prev,
           isConnected: true,
+          isConnecting: false,
           error: null,
         }));
       });
@@ -148,16 +158,19 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       connection.on(LiveTranscriptionEvents.Error, (error: any) => {
         console.error('❌ Deepgram connection error:', error);
         const errorMessage = error?.message || error || 'Unknown Deepgram error';
+        toastError('Connection Error', `Speech recognition service failed: ${errorMessage}`);
         setConnectionState(prev => ({
           ...prev,
           error: `Deepgram error: ${errorMessage}`,
           isConnected: false,
+          isConnecting: false,
         }));
         options.onError?.(new Error(`Deepgram connection failed: ${errorMessage}`));
       });
 
       connection.on(LiveTranscriptionEvents.Close, () => {
         console.log('🔌 Deepgram connection closed');
+        info('Connection Closed', 'Speech recognition connection has ended');
         setConnectionState(prev => ({
           ...prev,
           isConnected: false,
@@ -190,10 +203,13 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       } catch (micError) {
         if (micError instanceof Error) {
           if (micError.name === 'NotAllowedError') {
+            toastError('Microphone Access Denied', 'Please allow microphone access in your browser settings to use this feature.');
             throw new Error('Microphone access denied. Please allow microphone access to use this feature.');
           } else if (micError.name === 'NotFoundError') {
+            toastError('No Microphone Found', 'Please connect a microphone and try again.');
             throw new Error('No microphone found. Please connect a microphone and try again.');
           } else {
+            toastError('Microphone Error', `Failed to access microphone: ${micError.message}`);
             throw new Error(`Microphone error: ${micError.message}`);
           }
         }
@@ -265,6 +281,7 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       processor.connect(audioContext.destination);
 
       console.log('🚀 Web Audio API pipeline active and sending PCM audio to Deepgram...');
+      success('Recording Started', 'Listening for speech. Click stop when you are finished.');
 
       setConnectionState(prev => ({
         ...prev,
@@ -273,16 +290,20 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
 
     } catch (error) {
       console.error('Error starting recording:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start recording';
+      toastError('Recording Failed', errorMessage);
       setConnectionState(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Failed to start recording',
+        error: errorMessage,
+        isConnecting: false,
       }));
       options.onError?.(error instanceof Error ? error : new Error('Recording failed'));
     }
-  }, [options]);
+  }, [options, info, success, toastError]);
 
   const stopRecording = useCallback(() => {
     console.log('🛑 Stopping Deepgram transcription...');
+    info('Recording Stopped', 'Speech recognition has been stopped.');
 
     // Disconnect Web Audio API components
     if (scriptProcessorRef.current && sourceRef.current && audioContextRef.current) {
@@ -331,9 +352,10 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
     setConnectionState({
       isRecording: false,
       isConnected: false,
+      isConnecting: false,
       error: null,
     });
-  }, []);
+  }, [info]);
 
   return {
     ...connectionState,

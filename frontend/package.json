@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@deepgram/sdk": "^4.11.2",
+    "@heroicons/react": "^2.2.0",
     "@types/node": "^16.18.126",
     "@types/p5": "^1.7.7",
     "@types/react": "^19.2.2",

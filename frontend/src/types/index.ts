@@ -22,5 +22,6 @@ export interface TranscriptSegment {
 export interface ConnectionState {
   isRecording: boolean;
   isConnected: boolean;
+  isConnecting: boolean;
   error: string | null;
 }

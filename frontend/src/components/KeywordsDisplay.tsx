@@ -13,7 +13,7 @@ const KeywordBubble: React.FC<{
   sentiment: number;
   isVisible: boolean;
 }> = ({ keyword, index, sentiment, isVisible }) => {
-  // Determine color based on sentiment with richer palette
+  // Determine animated color based on sentiment with richer palette
   const getColor = () => {
     if (sentiment > 0.1) {
       return 'rgba(255, 107, 107, 0.85)'; // Warm coral red
@@ -24,56 +24,92 @@ const KeywordBubble: React.FC<{
     }
   };
 
-  // Animation variants for each keyword
+  // Get secondary color for gradient animation
+  const getSecondaryColor = () => {
+    if (sentiment > 0.3) {
+      return 'rgba(255, 140, 90, 0.85)'; // Lighter coral
+    } else if (sentiment < -0.3) {
+      return 'rgba(147, 169, 247, 0.85)'; // Lighter blue
+    } else {
+      return 'rgba(165, 248, 165, 0.85)'; // Lighter green
+    }
+  };
+
+  // Animation variants for each keyword with feed-from-bottom effect
   const variants = {
     hidden: {
-      x: "100vw",
+      y: 150, // Start just outside container bounds for visible feed effect
       opacity: 0,
-      scale: 0.3,
-      rotate: -15
+      scale: 0.8,
+      filter: "blur(0.25rem)"
     },
     visible: {
-      x: 0,
+      y: 0, // End at final grid position
       opacity: 1,
       scale: 1,
-      rotate: 0,
+      filter: "blur(0rem)",
       transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 25,
-        mass: 1,
-        delay: index * 0.15, // Staggered entrance
-        duration: 0.8
+        type: "tween",
+        ease: [0.25, 0.1, 0.25, 1], // Custom cubic-bezier for smoothness
+        duration: 1.2, // Optimized duration for better visibility
+        delay: index * 0.25, // Staggered entrance for feed effect
       }
     },
     hover: {
-      scale: 1.05,
-      rotate: [-2, 2, -2],
+      scale: 1.08,
+      y: -4,
+      filter: "brightness(1.2)",
       transition: {
-        duration: 0.3,
-        repeat: Infinity,
-        repeatType: "reverse"
+        type: "tween",
+        ease: "easeInOut",
+        duration: 0.4
       }
     },
     tap: {
-      scale: 0.95,
-      rotate: 0
+      scale: 0.96,
+      y: 0,
+      transition: {
+        type: "tween",
+        duration: 0.2
+      }
+    },
+    sentimentChange: {
+      scale: [1, 1.12, 1],
+      transition: {
+        type: "tween",
+        duration: 0.8,
+        ease: "easeInOut"
+      }
     }
   };
 
   return (
     <motion.div
-      className={`inline-block relative px-6 py-3 m-2 rounded-[30px] text-white text-lg font-semibold font-display letter-spacing-[-0.02em] shadow-lg backdrop-blur-xl border border-white/40 cursor-default select-none overflow-hidden transition-all duration-300 hover:shadow-2xl`}
-      style={{
-        backgroundColor: getColor(),
-        background: `linear-gradient(135deg, ${getColor()} 0%, ${getColor()}dd 100%)`
-      }}
+      className={`relative px-5 py-2.5 m-1 rounded-[25px] text-white font-medium font-display letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 ${
+        index % 3 === 0 ? 'text-sm' : index % 3 === 1 ? 'text-base' : 'text-lg'
+      } sm:${
+        index % 3 === 0 ? 'text-base' : index % 3 === 1 ? 'text-lg' : 'text-xl'
+      }`}
       variants={variants}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
       whileHover="hover"
       whileTap="tap"
       layoutId={`keyword-${keyword}-${index}`}
+      style={{
+        backgroundColor: getColor(),
+        background: `linear-gradient(135deg, ${getColor()} 0%, ${getSecondaryColor()} 100%)`,
+        boxShadow: sentiment > 0.1
+          ? "0 6px 24px rgba(255, 107, 107, 0.35)"
+          : sentiment < -0.1
+          ? "0 6px 24px rgba(100, 149, 237, 0.35)"
+          : "0 6px 24px rgba(144, 238, 144, 0.35)",
+      }}
+      transition={{
+        backgroundColor: { duration: 1.0, ease: "easeInOut" },
+        background: { duration: 1.0, ease: "easeInOut" },
+        boxShadow: { duration: 0.8, ease: "easeInOut" },
+      }}
     >
       <span className="relative z-10 drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]">{keyword}</span>
       <div className="keyword-glow absolute -inset-1/2 w-[200%] h-[200%] rounded-[inherit] opacity-0 transition-opacity duration-300 hover:opacity-100 pointer-events-none"
@@ -86,6 +122,24 @@ const KeywordBubble: React.FC<{
           background: 'linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.2) 50%, transparent 60%)',
           backgroundSize: '200% 100%',
           animation: 'shimmer 3s infinite'
+        }}
+      />
+      <motion.div
+        className="absolute inset-0 rounded-[inherit] pointer-events-none"
+        variants={{
+          hidden: { opacity: 0, scale: 0.8 },
+          visible: {
+            opacity: [0, 0.4, 0],
+            scale: [0.8, 1.1, 1.2],
+            transition: {
+              duration: 1.0,
+              ease: "easeOut",
+              times: [0, 0.6, 1]
+            }
+          }
+        }}
+        style={{
+          background: `radial-gradient(circle, ${getColor()}88 0%, transparent 70%)`,
         }}
       />
     </motion.div>
@@ -121,30 +175,32 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
 
   return (
     <motion.div
-      className="fixed bottom-0 left-0 w-full h-[calc(25vh-1.25rem)] bg-gradient-to-t from-black/90 to-black/80 backdrop-blur-md border-t border-white/15 p-5 text-white font-display z-[40] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col"
+      className="fixed bottom-0 left-0 w-full h-[calc(25vh-1.25rem)] bg-gradient-to-t from-black/25 to-black/15 backdrop-blur-sm border-t border-white/8 p-5 text-white font-display z-[50] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       <motion.div
-        className="mb-4 border-b border-white/15 pb-3"
+        className="mb-4 border-b border-white/10 pb-3"
         variants={headerVariants}
       >
         <h3 className="m-0 text-lg font-bold text-white/95 font-display letter-spacing-[0.1em] uppercase opacity-90">Keywords</h3>
       </motion.div>
 
-      <div className="flex items-center gap-4 h-[calc(100%-3.75rem)] overflow-x-auto overflow-y-hidden whitespace-nowrap p-2 scrollbar-none">
+      <div className="relative h-[calc(100%-3.75rem)] p-2 overflow-visible">
         <AnimatePresence mode="popLayout">
           {keywords.length > 0 ? (
-            keywords.map((keyword, index) => (
-              <KeywordBubble
-                key={`${keyword}-${index}`}
-                keyword={keyword}
-                index={index}
-                sentiment={sentiment}
-                isVisible={true}
-              />
-            ))
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-items-center">
+              {keywords.map((keyword, index) => (
+                  <KeywordBubble
+                  key={`${keyword}-${index}`}
+                  keyword={keyword}
+                  index={index}
+                  sentiment={sentiment}
+                  isVisible={true}
+                />
+              ))}
+            </div>
           ) : (
             <motion.div
               key="placeholder"

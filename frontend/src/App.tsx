@@ -3,6 +3,7 @@ import PerlinAura from './components/PerlinAura';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import KeywordsDisplay from './components/KeywordsDisplay';
 import Controls from './components/Controls';
+import ToastContainer from './components/Toast/ToastContainer';
 import { useDeepgram } from './hooks/useDeepgram';
 import { useSentimentAnalysis } from './hooks/useSentimentAnalysis';
 import { TranscriptSegment } from './types';
@@ -72,11 +73,14 @@ const App: React.FC = () => {
       <Controls
         isRecording={deepgram.isRecording}
         isConnected={deepgram.isConnected}
+        isConnecting={deepgram.isConnecting}
         error={deepgram.error}
         onStart={handleStart}
         onStop={handleStop}
         onReset={handleReset}
       />
+
+      <ToastContainer />
     </div>
   );
 };

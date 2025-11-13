@@ -27,7 +27,7 @@ module.exports = {
         'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       backdropBlur: {
-        xs: '2px',
+        xs: '0.125rem',
       },
       animation: {
         'float': 'float 3s ease-in-out infinite',
@@ -35,12 +35,12 @@ module.exports = {
       },
       keyframes: {
         float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-10px)' },
+          '0%, 100%': { transform: 'translateY(0rem)' },
+          '50%': { transform: 'translateY(-0.625rem)' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 5px rgba(255, 255, 255, 0.5)' },
-          '100%': { boxShadow: '0 0 20px rgba(255, 255, 255, 0.8)' },
+          '0%': { boxShadow: '0 0 0.3125rem rgba(255, 255, 255, 0.5)' },
+          '100%': { boxShadow: '0 0 1.25rem rgba(255, 255, 255, 0.8)' },
         }
       }
     },
