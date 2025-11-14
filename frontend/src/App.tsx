@@ -68,6 +68,7 @@ const App: React.FC = () => {
       <KeywordsDisplay
         keywords={hookSentimentData?.keywords || []}
         sentiment={hookSentimentData?.sentiment || 0}
+        sentimentData={hookSentimentData || null}
       />
 
       <Controls

@@ -1,87 +1,208 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
+import { getEmotionColor, getEmotionIntensity, getDominantEmotion, getTemporalEmotionColor } from '../utils/emotionUtils';
+import { SentimentData } from '../types';
 
 interface KeywordsDisplayProps {
   keywords: string[];
   sentiment: number;
+  sentimentData?: SentimentData | null;
 }
 
 const KeywordBubble: React.FC<{
   keyword: string;
   index: number;
   sentiment: number;
+  sentimentData?: SentimentData | null;
   isVisible: boolean;
-}> = ({ keyword, index, sentiment, isVisible }) => {
-  // Determine animated color based on sentiment with richer palette
-  const getColor = () => {
-    if (sentiment > 0.1) {
-      return 'rgba(255, 107, 107, 0.85)'; // Warm coral red
-    } else if (sentiment < -0.1) {
-      return 'rgba(100, 149, 237, 0.85)'; // Cool cornflower blue
+}> = ({ keyword, index, sentiment, sentimentData, isVisible }) => {
+  // Temporal state for smooth transitions
+  const previousColorRef = React.useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
+
+  // Advanced temporal emotion-based color system
+  const getEmotionColors = () => {
+    if (sentimentData) {
+      // Use temporal emotion color system for smooth transitions
+      const emotionColor = getTemporalEmotionColor(sentimentData, previousColorRef.current);
+      const dominantEmotion = sentimentData?.emotion_scores ?
+        getDominantEmotion(sentimentData.emotion_scores) : 'joy';
+      const intensity = sentimentData?.emotion_scores ?
+        getEmotionIntensity(sentimentData.emotion_scores) : 0.5;
+
+      // Update previous color for next render
+      previousColorRef.current = {
+        hue: emotionColor.hue,
+        saturation: emotionColor.saturation,
+        brightness: emotionColor.brightness
+      };
+
+      // Convert HSB to RGB for CSS
+      const hslToRgb = (h: number, s: number, l: number, a: number = 0.85) => {
+        return `hsla(${h}, ${s}%, ${l}%, ${a})`;
+      };
+
+      // Enhanced color with emotion-specific adjustments
+      const primaryHue = emotionColor.hue;
+      const primarySat = emotionColor.saturation;
+      const primaryLight = emotionColor.brightness;
+
+      // Secondary color with slight hue shift for gradient effect
+      const secondaryHue = (primaryHue + 30) % 360;
+
+      return {
+        primary: hslToRgb(primaryHue, primarySat, primaryLight, 0.85),
+        secondary: hslToRgb(secondaryHue, primarySat * 0.8, primaryLight * 1.1, 0.85),
+        glow: hslToRgb(primaryHue, primarySat * 1.2, primaryLight * 1.2, 0.3),
+        dominantEmotion,
+        intensity
+      };
     } else {
-      return 'rgba(144, 238, 144, 0.85)'; // Soft mint green
+      // Fallback to simple sentiment mapping
+      const getFallbackColor = (value: number, shift: number = 0) => {
+        const hue = value > 0.1 ? 0 + shift : value < -0.1 ? 210 + shift : 120 + shift;
+        const sat = value > 0.1 ? 70 : value < -0.1 ? 60 : 50;
+        const light = value > 0.1 ? 55 : value < -0.1 ? 50 : 60;
+        return `hsla(${hue}, ${sat}%, ${light}%, 0.85)`;
+      };
+
+      return {
+        primary: getFallbackColor(sentiment),
+        secondary: getFallbackColor(sentiment, 20),
+        glow: getFallbackColor(sentiment, -10),
+        dominantEmotion: 'neutral' as const,
+        intensity: Math.abs(sentiment)
+      };
     }
   };
 
-  // Get secondary color for gradient animation
-  const getSecondaryColor = () => {
-    if (sentiment > 0.3) {
-      return 'rgba(255, 140, 90, 0.85)'; // Lighter coral
-    } else if (sentiment < -0.3) {
-      return 'rgba(147, 169, 247, 0.85)'; // Lighter blue
-    } else {
-      return 'rgba(165, 248, 165, 0.85)'; // Lighter green
-    }
+  const colors = getEmotionColors();
+
+  // Emotion-responsive animation variants
+  const getEmotionSpecificAnimations = () => {
+    const baseDelay = index * 0.25;
+    const intensityMultiplier = 1 + colors.intensity * 0.5;
+
+    // Emotion-specific animation parameters
+    const getEmotionParams = () => {
+      switch (colors.dominantEmotion) {
+        case 'joy':
+          return {
+            entranceDuration: 0.8, // Bouncy, quick entrance
+            exitDuration: 0.6,
+            hoverScale: 1.08,
+            hoverY: -3,
+            entranceScale: [0.6, 1.1, 1], // Bouncy effect
+          };
+        case 'anger':
+          return {
+            entranceDuration: 0.5, // Sharp, aggressive entrance
+            exitDuration: 0.3,
+            hoverScale: 1.06,
+            hoverY: -1,
+            entranceScale: [0.8, 1.05, 1], // Sharp snap
+          };
+        case 'fear':
+          return {
+            entranceDuration: 1.0, // Hesitant, trembling entrance
+            exitDuration: 0.8,
+            hoverScale: 1.03,
+            hoverY: -1,
+            entranceScale: [0.7, 1.02, 0.98, 1], // Trembling effect
+          };
+        case 'sadness':
+          return {
+            entranceDuration: 1.5, // Slow, flowing entrance
+            exitDuration: 1.2,
+            hoverScale: 1.02,
+            hoverY: -0.5,
+            entranceScale: [0.5, 0.8, 1], // Gradual growth
+          };
+        case 'surprise':
+          return {
+            entranceDuration: 0.4, // Sudden burst entrance
+            exitDuration: 0.6,
+            hoverScale: 1.12,
+            hoverY: -4,
+            entranceScale: [0.9, 1.15, 1], // Burst effect
+          };
+        case 'disgust':
+          return {
+            entranceDuration: 1.1, // Reluctant, uneven entrance
+            exitDuration: 0.9,
+            hoverScale: 1.01,
+            hoverY: -0.5,
+            entranceScale: [0.6, 0.85, 0.95, 1], // Uneven growth
+          };
+        default:
+          return {
+            entranceDuration: 1.2,
+            exitDuration: 0.8,
+            hoverScale: 1.05,
+            hoverY: -2,
+            entranceScale: [0.8, 1], // Smooth entrance
+          };
+      }
+    };
+
+    const emotionParams = getEmotionParams();
+
+    return {
+      hidden: {
+        y: 150,
+        opacity: 0,
+        scale: emotionParams.entranceScale[0],
+        filter: "blur(0.25rem)",
+        rotate: colors.dominantEmotion === 'surprise' ? Math.random() * 10 - 5 : 0,
+      },
+      visible: {
+        y: 0,
+        opacity: 1,
+        scale: emotionParams.entranceScale[emotionParams.entranceScale.length - 1],
+        filter: "blur(0rem)",
+        rotate: 0,
+        transition: {
+          type: "tween",
+          ease: colors.dominantEmotion === 'joy' ? [0.68, -0.55, 0.265, 1.55] : // Bouncy
+                 colors.dominantEmotion === 'anger' ? [0.25, 0.46, 0.45, 0.94] : // Sharp
+                 [0.25, 0.1, 0.25, 1], // Default smooth
+          duration: emotionParams.entranceDuration / intensityMultiplier,
+          delay: baseDelay,
+          scale: { duration: emotionParams.entranceDuration / intensityMultiplier },
+          rotate: { duration: 0.3 },
+        }
+      },
+      hover: {
+        scale: emotionParams.hoverScale,
+        y: emotionParams.hoverY,
+        filter: `brightness(${1.1 + colors.intensity * 0.2})`,
+        transition: {
+          type: "tween",
+          ease: "easeInOut",
+          duration: colors.dominantEmotion === 'surprise' ? 0.2 : 0.4,
+        }
+      },
+      tap: {
+        scale: emotionParams.hoverScale * 0.9,
+        y: 0,
+        transition: {
+          type: "tween",
+          duration: 0.1,
+        }
+      },
+      sentimentChange: {
+        scale: [1, 1.12 * intensityMultiplier, 1],
+        filter: ["brightness(1)", `brightness(${1.2 + colors.intensity * 0.3})`, "brightness(1)"],
+        transition: {
+          type: "tween",
+          duration: 0.8,
+          ease: "easeInOut"
+        }
+      }
+    };
   };
 
-  // Animation variants for each keyword with feed-from-bottom effect
-  const variants = {
-    hidden: {
-      y: 150, // Start just outside container bounds for visible feed effect
-      opacity: 0,
-      scale: 0.8,
-      filter: "blur(0.25rem)"
-    },
-    visible: {
-      y: 0, // End at final grid position
-      opacity: 1,
-      scale: 1,
-      filter: "blur(0rem)",
-      transition: {
-        type: "tween",
-        ease: [0.25, 0.1, 0.25, 1], // Custom cubic-bezier for smoothness
-        duration: 1.2, // Optimized duration for better visibility
-        delay: index * 0.25, // Staggered entrance for feed effect
-      }
-    },
-    hover: {
-      scale: 1.05,
-      y: -2,
-      filter: "brightness(1.15)",
-      transition: {
-        type: "tween",
-        ease: "easeInOut",
-        duration: 0.4
-      }
-    },
-    tap: {
-      scale: 0.96,
-      y: 0,
-      transition: {
-        type: "tween",
-        duration: 0.2
-      }
-    },
-    sentimentChange: {
-      scale: [1, 1.12, 1],
-      transition: {
-        type: "tween",
-        duration: 0.8,
-        ease: "easeInOut"
-      }
-    }
-  };
+  const variants = getEmotionSpecificAnimations();
 
   return (
     <motion.div
@@ -93,13 +214,10 @@ const KeywordBubble: React.FC<{
       whileTap="tap"
       layoutId={`keyword-${keyword}-${index}`}
       style={{
-        backgroundColor: getColor(),
-        background: `linear-gradient(135deg, ${getColor()} 0%, ${getSecondaryColor()} 100%)`,
-        boxShadow: sentiment > 0.1
-          ? "0 6px 24px rgba(255, 107, 107, 0.35)"
-          : sentiment < -0.1
-          ? "0 6px 24px rgba(100, 149, 237, 0.35)"
-          : "0 6px 24px rgba(144, 238, 144, 0.35)",
+        backgroundColor: colors.primary,
+        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+        boxShadow: `0 6px 24px ${colors.glow.replace('0.3', '0.35')}`,
+        border: `1px solid ${colors.glow.replace('0.3', '0.2')}`,
       }}
       transition={{
         backgroundColor: { duration: 1.0, ease: "easeInOut" },
@@ -110,14 +228,18 @@ const KeywordBubble: React.FC<{
       <span className="relative z-10 drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)] truncate text-center">{keyword}</span>
       <div className="keyword-glow absolute -inset-1/2 w-[200%] h-[200%] rounded-[inherit] opacity-0 transition-opacity duration-300 hover:opacity-100 pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)'
+          background: `radial-gradient(circle, ${colors.glow.replace('0.3', '0.4')} 0%, transparent 70%)`
         }}
       />
       <div className="keyword-shimmer absolute inset-0 rounded-[inherit]"
         style={{
-          background: 'linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.2) 50%, transparent 60%)',
+          background: `linear-gradient(105deg, transparent 40%, ${colors.glow.replace('0.3', '0.3')} 50%, transparent 60%)`,
           backgroundSize: '200% 100%',
-          animation: 'shimmer 3s infinite'
+          animation: colors.dominantEmotion === 'joy' ? 'shimmer 1.5s infinite' :
+                       colors.dominantEmotion === 'anger' ? 'shimmer 0.8s infinite' :
+                       colors.dominantEmotion === 'fear' ? 'shimmer 2.2s infinite' :
+                       colors.dominantEmotion === 'sadness' ? 'shimmer 4s infinite' :
+                       'shimmer 3s infinite'
         }}
       />
       <motion.div
@@ -125,24 +247,28 @@ const KeywordBubble: React.FC<{
         variants={{
           hidden: { opacity: 0, scale: 0.8 },
           visible: {
-            opacity: [0, 0.4, 0],
-            scale: [0.8, 1.1, 1.2],
+            opacity: [0, 0.4 * colors.intensity, 0],
+            scale: [0.8, 1.1 * (1 + colors.intensity * 0.2), 1.2 * (1 + colors.intensity * 0.1)],
             transition: {
-              duration: 1.0,
-              ease: "easeOut",
+              duration: colors.dominantEmotion === 'surprise' ? 0.6 :
+                         colors.dominantEmotion === 'anger' ? 0.4 :
+                         colors.dominantEmotion === 'sadness' ? 1.5 : 1.0,
+              ease: colors.dominantEmotion === 'joy' ? "easeOut" :
+                     colors.dominantEmotion === 'fear' ? "easeInOut" :
+                     "easeOut",
               times: [0, 0.6, 1]
             }
           }
         }}
         style={{
-          background: `radial-gradient(circle, ${getColor()}88 0%, transparent 70%)`,
+          background: `radial-gradient(circle, ${colors.glow.replace('0.3', '0.5')} 0%, transparent 70%)`,
         }}
       />
     </motion.div>
   );
 };
 
-const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }) => {
+const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment, sentimentData }) => {
   // Container animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -193,6 +319,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
                   keyword={keyword}
                   index={index}
                   sentiment={sentiment}
+                  sentimentData={sentimentData}
                   isVisible={true}
                 />
               ))}
