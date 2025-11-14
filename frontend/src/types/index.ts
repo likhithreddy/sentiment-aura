@@ -24,4 +24,7 @@ export interface ConnectionState {
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
+  recordingStartTime?: number;
+  recordingDuration?: number;
+  audioLevel?: number;
 }

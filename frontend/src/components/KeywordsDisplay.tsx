@@ -85,7 +85,7 @@ const KeywordBubble: React.FC<{
 
   return (
     <motion.div
-      className="relative px-1.5 sm:px-2 py-1 m-0.5 rounded-[16px] text-white font-semibold font-montserrat letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 text-xs flex items-center justify-center min-h-[1.75rem] max-w-[90px] sm:max-w-[110px]"
+      className="relative px-1.5 sm:px-2 py-1 rounded-[16px] text-white font-semibold font-montserrat letter-spacing-[0.02em] shadow-lg backdrop-blur-xl border border-white/30 cursor-default select-none overflow-hidden transition-all duration-300 text-xs flex items-center justify-center min-h-[1.75rem] flex-shrink-0"
       variants={variants}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
@@ -186,7 +186,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
       <div className="relative h-[calc(100%-3.75rem)] p-2 overflow-visible">
         <AnimatePresence mode="popLayout">
           {keywords.length > 0 ? (
-            <div className="grid grid-cols-6 sm:grid-cols-12 md:grid-cols-16 lg:grid-cols-20 gap-0.5 sm:gap-1 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-items-center place-items-center">
+            <div className="flex flex-wrap gap-0.5 sm:gap-1 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-between content-start">
               {keywords.map((keyword, index) => (
                   <KeywordBubble
                   key={`${keyword}-${index}`}

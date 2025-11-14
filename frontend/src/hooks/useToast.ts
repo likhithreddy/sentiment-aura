@@ -69,6 +69,48 @@ export const useToast = () => {
     return addToast({ type: 'info', title, message, ...options });
   }, [addToast]);
 
+  // Specialized toast methods for recording
+  const recordingStarted = useCallback((connectionQuality?: 'excellent' | 'good' | 'poor') => {
+    const qualityMessage = connectionQuality ? `Connection quality: ${connectionQuality}` : '';
+    const message = `Speech recognition is now active. ${qualityMessage}`;
+
+    return addToast({
+      type: 'success',
+      title: 'Recording Started',
+      message,
+      duration: 3000,
+      persistent: false,
+    });
+  }, [addToast]);
+
+  const recordingStopped = useCallback((duration?: number, transcriptCount?: number) => {
+    const durationText = duration ? ` Duration: ${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')}` : '';
+    const transcriptText = transcriptCount ? ` Processed ${transcriptCount} segments` : '';
+    const message = `Speech recognition has been stopped.${durationText}${transcriptText}`;
+
+    return addToast({
+      type: 'info',
+      title: 'Recording Stopped',
+      message,
+      duration: 4000,
+      persistent: false,
+    });
+  }, [addToast]);
+
+  const connectionIssue = useCallback((quality: 'poor' | 'unstable') => {
+    const message = quality === 'poor'
+      ? 'Poor audio quality detected. Please speak clearly and check your microphone.'
+      : 'Connection is unstable. Recording may be affected.';
+
+    return addToast({
+      type: 'warning',
+      title: 'Connection Issue',
+      message,
+      duration: 6000,
+      persistent: false,
+    });
+  }, [addToast]);
+
   return {
     toasts: state.toasts,
     addToast,
@@ -78,5 +120,8 @@ export const useToast = () => {
     error,
     warning,
     info,
+    recordingStarted,
+    recordingStopped,
+    connectionIssue,
   };
 };

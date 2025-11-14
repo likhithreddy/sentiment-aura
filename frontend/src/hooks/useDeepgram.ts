@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 import { ClientOptions } from '@deepgram/sdk';
 import { TranscriptSegment, ConnectionState } from '../types';
@@ -17,12 +17,13 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
     error: null,
   });
 
-  const { success, error: toastError, warning, info } = useToast();
+  const { success, error: toastError, warning, info, recordingStarted, recordingStopped, connectionIssue } = useToast();
   const deepgramRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const transcriptCountRef = useRef<number>(0);
 
   // Helper function to convert Float32Array to Int16Array for Deepgram compatibility
   const convertFloat32ToInt16 = (float32Array: Float32Array): Int16Array => {
@@ -146,6 +147,9 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
             };
 
             console.log('🎯 Calling onTranscript with segment:', segment);
+            if (segment.is_final) {
+              transcriptCountRef.current++;
+            }
             options.onTranscript?.(segment);
           } else {
             console.log('⚠️ Empty transcript received, skipping');
@@ -232,9 +236,7 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       const processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       scriptProcessorRef.current = processor;
 
-      let audioLevelSum = 0;
-      let audioLevelCount = 0;
-      let lastAudioLevelLog = 0;
+      let lastAudioLevelUpdate = 0;
 
       processor.onaudioprocess = (event) => {
         if (!deepgramRef.current) return;
@@ -252,17 +254,15 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
           sum += Math.abs(amplifiedData[i]);
         }
         const level = sum / amplifiedData.length;
-        audioLevelSum += level;
-        audioLevelCount++;
 
-        // Log audio level every 2 seconds
+        // Update audio level in state every 100ms for smooth visualization
         const now = Date.now();
-        if (now - lastAudioLevelLog > 2000) {
-          const avgLevel = audioLevelCount > 0 ? audioLevelSum / audioLevelCount : 0;
-          console.log(`🎚️ Average audio level (amplified): ${avgLevel.toFixed(4)} (gain: ${GAIN_MULTIPLIER}x)`);
-          audioLevelSum = 0;
-          audioLevelCount = 0;
-          lastAudioLevelLog = now;
+        if (now - lastAudioLevelUpdate > 100) {
+          setConnectionState(prev => ({
+            ...prev,
+            audioLevel: Math.min(level * 10, 1), // Scale and normalize to 0-1
+          }));
+          lastAudioLevelUpdate = now;
         }
 
         // Convert amplified Float32Array to Int16Array for Deepgram compatibility
@@ -281,11 +281,14 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       processor.connect(audioContext.destination);
 
       console.log('🚀 Web Audio API pipeline active and sending PCM audio to Deepgram...');
-      info('Listening', 'Speech recognition is now active and listening for your input.');
+      transcriptCountRef.current = 0; // Reset transcript count
+      recordingStarted('excellent'); // TODO: Determine actual connection quality based on audio level
 
       setConnectionState(prev => ({
         ...prev,
         isRecording: true,
+        recordingStartTime: Date.now(),
+        recordingDuration: 0,
       }));
 
     } catch (error) {
@@ -301,9 +304,33 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
     }
   }, [options, info, success, toastError]);
 
+  // Effect to update recording duration every second when recording
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (connectionState.isRecording && connectionState.recordingStartTime) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        const duration = Math.floor((now - connectionState.recordingStartTime) / 1000);
+        setConnectionState(prev => ({
+          ...prev,
+          recordingDuration: duration,
+        }));
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [connectionState.isRecording, connectionState.recordingStartTime]);
+
   const stopRecording = useCallback(() => {
     console.log('🛑 Stopping Deepgram transcription...');
-    info('Stopped', 'Speech recognition has been stopped.');
+    const finalDuration = connectionState.recordingDuration || 0;
+    const finalTranscriptCount = transcriptCountRef.current;
+    recordingStopped(finalDuration, finalTranscriptCount);
 
     // Disconnect Web Audio API components
     if (scriptProcessorRef.current && sourceRef.current && audioContextRef.current) {
@@ -354,6 +381,9 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       isConnected: false,
       isConnecting: false,
       error: null,
+      recordingStartTime: undefined,
+      recordingDuration: undefined,
+      audioLevel: 0,
     });
   }, [info]);
 

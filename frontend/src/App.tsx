@@ -75,6 +75,8 @@ const App: React.FC = () => {
         isConnected={deepgram.isConnected}
         isConnecting={deepgram.isConnecting}
         error={deepgram.error}
+        recordingDuration={deepgram.recordingDuration}
+        audioLevel={deepgram.audioLevel}
         onStart={handleStart}
         onStop={handleStop}
         onReset={handleReset}
