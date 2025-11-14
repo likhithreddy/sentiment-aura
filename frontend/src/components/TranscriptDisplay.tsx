@@ -29,8 +29,8 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
     return null;
   }
 
-  // Calculate duration based on text length for extremely slow scrolling speed
-  const duration = Math.max(30, displayText.length * 0.8);
+  // Use fixed duration for consistent animation speed without restarts
+  const duration = 60; // Fixed 60 seconds for smooth continuous scrolling
 
   // Framer Motion variants for the ticker animation
   const tickerVariants = {
@@ -59,6 +59,7 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
         <div className="relative flex items-center justify-center h-full">
           {/* Animated wrapper that moves the content extremely slowly */}
           <motion.div
+            key="ticker" // Fixed key to maintain animation state
             variants={tickerVariants}
             animate="animate"
             className="flex whitespace-nowrap"

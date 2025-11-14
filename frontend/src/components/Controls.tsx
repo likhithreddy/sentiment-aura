@@ -125,16 +125,20 @@ const Controls: React.FC<ControlsProps> = ({
           </button>
         </div>
 
-        {/* Right: Audio Level Meter */}
+        {/* Right: Audio Level Meter with space reservation */}
         <div className="flex-1 flex justify-end">
-          {isRecording && (
-            <div className="w-24 h-6 bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-white/10">
-              <AudioLevelMeter
-                audioLevel={audioLevel}
-                isActive={isRecording}
-              />
-            </div>
-          )}
+          <div className="w-24 h-6">
+            {isRecording ? (
+              <div className="w-full h-full bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-white/10">
+                <AudioLevelMeter
+                  audioLevel={audioLevel}
+                  isActive={isRecording}
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full invisible" /> // Reserve space to prevent layout shift
+            )}
+          </div>
         </div>
 
       </div>

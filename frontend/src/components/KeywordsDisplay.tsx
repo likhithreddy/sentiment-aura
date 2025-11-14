@@ -186,7 +186,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment }
       <div className="relative h-[calc(100%-3.75rem)] p-2 overflow-visible">
         <AnimatePresence mode="popLayout">
           {keywords.length > 0 ? (
-            <div className="flex flex-wrap gap-0.5 sm:gap-1 h-full overflow-x-auto overflow-y-auto scrollbar-none justify-between content-start">
+            <div className="flex flex-wrap gap-0.5 sm:gap-1 h-full overflow-x-auto overflow-y-auto scrollbar-none content-start">
               {keywords.map((keyword, index) => (
                   <KeywordBubble
                   key={`${keyword}-${index}`}
