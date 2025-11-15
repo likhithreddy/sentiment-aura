@@ -60,36 +60,37 @@ const Controls: React.FC<ControlsProps> = ({
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] bg-transparent py-4 px-4 sm:px-6 md:px-8">
-      <div className="flex items-center justify-between max-w-6xl mx-auto">
+    <div className="fixed top-0 left-0 right-0 z-[100] bg-transparent py-4 px-6 sm:px-8 md:px-12">
+      <div className="bg-gradient-to-t from-black/25 to-black/15 backdrop-blur-sm border border-white/20 rounded-[3rem] px-8 py-4 shadow-xl w-full">
+        <div className="flex items-center justify-between">
 
-        {/* Left: Audio Timer */}
-        <div className="flex-1 flex justify-start">
-          <div className={`flex items-center justify-center px-4 py-2 backdrop-blur-sm rounded-full border transition-all duration-200 ${
-            isRecording
-              ? 'bg-red-500/20 border-red-500/30'
-              : 'bg-gray-500/10 border-gray-500/20'
-          }`}>
-            <div className={`w-2 h-2 rounded-full mr-3 transition-all duration-200 ${
-              isRecording
-                ? 'bg-red-500 animate-pulse'
-                : 'bg-gray-400'
-            }`} />
-            <span className={`text-sm font-montserrat font-medium transition-all duration-200 ${
+          {/* Left: Audio Timer */}
+          <div className="flex-1 flex justify-start">
+            <div className={`flex items-center justify-center transition-all duration-200 ${
               isRecording
                 ? 'text-white/90'
                 : 'text-white/50'
             }`}>
-              {isRecording && recordingDuration !== undefined
-                ? formatDuration(recordingDuration)
-                : '00:00'
-              }
-            </span>
+              <div className={`w-2 h-2 rounded-full mr-3 transition-all duration-200 ${
+                isRecording
+                  ? 'bg-red-500 animate-pulse'
+                  : 'bg-gray-400'
+              }`} />
+              <span className={`text-sm font-montserrat font-medium transition-all duration-200 ${
+                isRecording
+                  ? 'text-white/90'
+                  : 'text-white/50'
+              }`}>
+                {isRecording && recordingDuration !== undefined
+                  ? formatDuration(recordingDuration)
+                  : '00:00'
+                }
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Center: Control Buttons */}
-        <div className="flex items-center gap-4">
+          {/* Center: Control Buttons */}
+          <div className="flex items-center gap-4">
           {/* Start/Stop Button */}
           <button
             onClick={isRecording ? onStop : onStart}
@@ -138,16 +139,15 @@ const Controls: React.FC<ControlsProps> = ({
           </button>
         </div>
 
-        {/* Right: Audio Level Meter */}
-        <div className="flex-1 flex justify-end">
-          <div className="flex items-center justify-center px-4 py-2 bg-black/30 backdrop-blur-sm rounded-full border border-white/20">
+          {/* Right: Audio Level Meter */}
+          <div className="flex-1 flex justify-end">
             <AudioLevelMeter
               audioLevel={audioLevel}
               isActive={isRecording}
             />
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );

@@ -298,12 +298,13 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment, 
   };
 
   return (
-    <motion.div
-      className="fixed bottom-0 left-0 w-full h-[calc(33vh-1.25rem)] bg-gradient-to-t from-black/25 to-black/15 backdrop-blur-sm p-5 text-white font-display z-[50] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <div className="fixed bottom-0 left-0 right-0 z-[50] bg-transparent py-4 px-6 sm:px-8 md:px-12">
+      <motion.div
+        className="w-full h-[calc(33vh-1.25rem)] bg-gradient-to-t from-black/25 to-black/15 backdrop-blur-sm py-5 px-8 border border-white/20 text-white font-display z-[50] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col rounded-[3rem]"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
       <motion.div
         className="mb-4 border-b border-white/10 pb-3"
         variants={headerVariants}
@@ -350,7 +351,8 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment, 
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 };
 
