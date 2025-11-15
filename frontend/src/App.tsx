@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import PerlinAura from './components/PerlinAura';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import KeywordsDisplay from './components/KeywordsDisplay';

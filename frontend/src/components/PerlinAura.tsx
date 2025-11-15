@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { SentimentData } from '../types';
 import { useP5, P5Instance } from '../hooks/useP5';
 import { getEmotionColor, getEmotionIntensity, getDominantEmotion, getTemporalEmotionColor } from '../utils/emotionUtils';
@@ -153,6 +153,14 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
   const flowFieldRef = useRef<number[][][]>([]);
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
 
+  // P5.js state sync mechanism - bridge React state to P5.js animation loop
+  const sentimentDataRef = useRef(sentimentData);
+
+  // Sync React props to P5.js context
+  useEffect(() => {
+    sentimentDataRef.current = sentimentData;
+  }, [sentimentData]);
+
   const setup = (p5: P5Instance, canvasContainer: Element) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
 
@@ -170,10 +178,11 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
   const draw = (p5: P5Instance) => {
     timeRef.current += 0.005;
 
-    // Get sentiment data with defaults
-    const sentiment = sentimentData?.sentiment || 0;
-    const sentimentLabel = sentimentData?.sentiment_label || 'neutral';
-    const emotionScores = sentimentData?.emotion_scores || {
+    // Use synced sentiment data from React context
+    const currentSentimentData = sentimentDataRef.current;
+    const sentiment = currentSentimentData?.sentiment || 0;
+    const sentimentLabel = currentSentimentData?.sentiment_label || 'neutral';
+    const emotionScores = currentSentimentData?.emotion_scores || {
       joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
     };
 
@@ -189,16 +198,16 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
       // Advanced temporal HSB color system based on emotion scores and history
     let emotionColor;
 
-    // Check if we have valid sentiment data
-    const hasValidEmotionData = sentimentData &&
-      typeof sentimentData === 'object' &&
-      'emotion_scores' in sentimentData &&
-      typeof sentimentData.emotion_scores === 'object' &&
-      sentimentData.emotion_scores !== null;
+    // Check if we have valid sentiment data (using synced data)
+    const hasValidEmotionData = currentSentimentData &&
+      typeof currentSentimentData === 'object' &&
+      'emotion_scores' in currentSentimentData &&
+      typeof currentSentimentData.emotion_scores === 'object' &&
+      currentSentimentData.emotion_scores !== null;
 
     // Only call if we have valid sentiment data
     if (hasValidEmotionData) {
-      emotionColor = getTemporalEmotionColor(sentimentData, previousColorRef.current);
+      emotionColor = getTemporalEmotionColor(currentSentimentData, previousColorRef.current);
       // Update previous color for next frame's temporal evolution
       previousColorRef.current = {
         hue: emotionColor.hue,

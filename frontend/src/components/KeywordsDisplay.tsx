@@ -233,8 +233,10 @@ const KeywordBubble: React.FC<{
       />
       <div className="keyword-shimmer absolute inset-0 rounded-[inherit]"
         style={{
-          background: `linear-gradient(105deg, transparent 40%, ${colors.glow.replace('0.3', '0.3')} 50%, transparent 60%)`,
+          backgroundImage: `linear-gradient(105deg, transparent 40%, ${colors.glow.replace('0.3', '0.3')} 50%, transparent 60%)`,
           backgroundSize: '200% 100%',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
           animation: colors.dominantEmotion === 'joy' ? 'shimmer 1.5s infinite' :
                        colors.dominantEmotion === 'anger' ? 'shimmer 0.8s infinite' :
                        colors.dominantEmotion === 'fear' ? 'shimmer 2.2s infinite' :

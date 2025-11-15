@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { SentimentData } from '../types';
 import axios from 'axios';
 import { useToast } from './useToast';
@@ -36,7 +36,10 @@ export const useSentimentAnalysis = () => {
       setSentimentData(prev => {
         // If no previous data, use new data directly
         if (!prev) {
-          return response.data;
+          const newData = response.data;
+          console.log('🔄 New sentiment data created:', newData);
+          console.log('🎯 Total keywords accumulated:', newData.keywords?.length || 0);
+          return newData;
         }
 
         // Merge new keywords with existing ones, avoiding duplicates
@@ -52,27 +55,21 @@ export const useSentimentAnalysis = () => {
         });
 
         // Return merged data with new sentiment and accumulated keywords
-        return {
+        const mergedData = {
           sentiment: response.data.sentiment,
           sentiment_label: response.data.sentiment_label,
           confidence: response.data.confidence,
           emotion_scores: response.data.emotion_scores,
           keywords: allKeywords
         };
+
+        console.log('🔄 Sentiment data merged and updated:', mergedData);
+        console.log('🎯 Total keywords accumulated:', allKeywords.length);
+        console.log('📊 Dominant emotion:', Object.entries(response.data.emotion_scores || {})
+          .reduce((a, b) => (a[1] > b[1] ? a : b))[0]);
+
+        return mergedData;
       });
-
-      const mergedData = {
-        sentiment: response.data.sentiment,
-        sentiment_label: response.data.sentiment_label,
-        confidence: response.data.confidence,
-        emotion_scores: response.data.emotion_scores,
-        keywords: allKeywords
-      };
-
-      console.log('🔄 Sentiment data updated in state:', mergedData);
-      console.log('🎯 Total keywords accumulated:', allKeywords.length);
-      console.log('📊 Dominant emotion:', Object.entries(response.data.emotion_scores || {})
-        .reduce((a, b) => (a[1] > b[1] ? a : b))[0]);
 
       // Show success toast for successful analysis
       const sentimentLabel = response.data.sentiment_label || 'analyzed';
@@ -88,6 +85,15 @@ export const useSentimentAnalysis = () => {
       setIsAnalyzing(false);
     }
   }, [success, toastError]);
+
+  // Track sentiment data changes for debugging
+  useEffect(() => {
+    if (sentimentData) {
+      console.log('✅ Sentiment data successfully updated in React state:', sentimentData);
+      console.log('🎯 Actual keywords count in state:', sentimentData.keywords?.length || 0);
+      console.log('📈 Current sentiment:', sentimentData.sentiment, '(', sentimentData.sentiment_label, ')');
+    }
+  }, [sentimentData]);
 
   const clearSentimentData = useCallback(() => {
     setSentimentData(null);
