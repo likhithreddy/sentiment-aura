@@ -154,10 +154,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
 
   const setup = (p5: P5Instance, canvasContainer: Element) => {
-    console.log('🎨 Flow field setup starting...');
-
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
-    console.log('🎨 Canvas created:', { width: p5.width, height: p5.height });
 
     // Initialize flow field particles
     const numParticles = 500;
@@ -168,8 +165,6 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
         p5.random(p5.height)
       ));
     }
-
-    console.log('🎨 Flow field setup completed successfully');
   };
 
   const draw = (p5: P5Instance) => {
@@ -179,7 +174,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
     const sentiment = sentimentData?.sentiment || 0;
     const sentimentLabel = sentimentData?.sentiment_label || 'neutral';
     const emotionScores = sentimentData?.emotion_scores || {
-      joy: 0.2, sadness: 0.2, anger: 0.2, fear: 0.2, surprise: 0.1, disgust: 0.1
+      joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
     };
 
     // Calculate energy and chaos based on emotions
@@ -193,8 +188,16 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
 
       // Advanced temporal HSB color system based on emotion scores and history
     let emotionColor;
+
+    // Check if we have valid sentiment data
+    const hasValidEmotionData = sentimentData &&
+      typeof sentimentData === 'object' &&
+      'emotion_scores' in sentimentData &&
+      typeof sentimentData.emotion_scores === 'object' &&
+      sentimentData.emotion_scores !== null;
+
     // Only call if we have valid sentiment data
-    if (sentimentData && sentimentData.emotion_scores) {
+    if (hasValidEmotionData) {
       emotionColor = getTemporalEmotionColor(sentimentData, previousColorRef.current);
       // Update previous color for next frame's temporal evolution
       previousColorRef.current = {
@@ -206,9 +209,9 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
       // Use default neutral colors when no sentiment data
       emotionColor = {
         hue: 180, // Cyan
-        saturation: 60,
-        brightness: 70,
-        alpha: 0.5,
+        saturation: 75,
+        brightness: 85,
+        alpha: 0.9,
         confidence: 0.5,
         intensity: 0.5,
         stability: 0.5,
@@ -318,7 +321,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
     if (isRecording) {
       p5.background(0, 10);
     } else {
-      p5.background(0, 25);
+      p5.background(0, 2);
     }
 
     // Generate emotion-specific flow field
@@ -376,7 +379,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
     }
 
     // Update and draw particles with emotion-specific behaviors
-    const dynamicAlpha = isRecording ? particleAlpha * (1 + energy * 0.5) : particleAlpha * 0.5;
+    const dynamicAlpha = isRecording ? particleAlpha * (1 + energy * 0.5) : particleAlpha;
 
     // Apply emotion-specific behaviors to particles
     particlesRef.current.forEach((particle, index) => {
@@ -388,9 +391,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
       particle.update();
       particle.edges(p5.width, p5.height);
 
-      if (isRecording || p5.frameCount % 3 === 0) {
-        particle.draw(p5, baseHue, dynamicAlpha, emotionColor.saturation, emotionColor.brightness);
-      }
+      particle.draw(p5, baseHue, dynamicAlpha, emotionColor.saturation, emotionColor.brightness);
     });
 
     // Recording indicator with emotion-based color
