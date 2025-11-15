@@ -65,14 +65,27 @@ const Controls: React.FC<ControlsProps> = ({
 
         {/* Left: Audio Timer */}
         <div className="flex-1 flex justify-start">
-          {isRecording && recordingDuration !== undefined && (
-            <div className="flex items-center justify-center px-4 py-2 bg-red-500/20 backdrop-blur-sm rounded-full border border-red-500/30">
-              <div className="w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse" />
-              <span className="text-white/90 text-sm font-montserrat font-medium">
-                {formatDuration(recordingDuration)}
-              </span>
-            </div>
-          )}
+          <div className={`flex items-center justify-center px-4 py-2 backdrop-blur-sm rounded-full border transition-all duration-200 ${
+            isRecording
+              ? 'bg-red-500/20 border-red-500/30'
+              : 'bg-gray-500/10 border-gray-500/20'
+          }`}>
+            <div className={`w-2 h-2 rounded-full mr-3 transition-all duration-200 ${
+              isRecording
+                ? 'bg-red-500 animate-pulse'
+                : 'bg-gray-400'
+            }`} />
+            <span className={`text-sm font-montserrat font-medium transition-all duration-200 ${
+              isRecording
+                ? 'text-white/90'
+                : 'text-white/50'
+            }`}>
+              {isRecording && recordingDuration !== undefined
+                ? formatDuration(recordingDuration)
+                : '00:00'
+              }
+            </span>
+          </div>
         </div>
 
         {/* Center: Control Buttons */}
@@ -125,19 +138,13 @@ const Controls: React.FC<ControlsProps> = ({
           </button>
         </div>
 
-        {/* Right: Audio Level Meter with space reservation */}
+        {/* Right: Audio Level Meter */}
         <div className="flex-1 flex justify-end">
-          <div className="w-24 h-6">
-            {isRecording ? (
-              <div className="w-full h-full bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-white/10">
-                <AudioLevelMeter
-                  audioLevel={audioLevel}
-                  isActive={isRecording}
-                />
-              </div>
-            ) : (
-              <div className="w-full h-full invisible" /> // Reserve space to prevent layout shift
-            )}
+          <div className="flex items-center justify-center px-4 py-2 bg-black/30 backdrop-blur-sm rounded-full border border-white/20">
+            <AudioLevelMeter
+              audioLevel={audioLevel}
+              isActive={isRecording}
+            />
           </div>
         </div>
 
