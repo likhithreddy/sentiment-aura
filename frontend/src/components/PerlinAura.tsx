@@ -16,31 +16,37 @@ const EMOTION_HUES = {
 interface PerlinAuraProps {
   sentimentData: SentimentData | null;
   isRecording: boolean;
+  resetTrigger?: number; // Trigger reset when this value changes
 }
 
-// Enhanced Flow Field Particle class with emotion-specific behaviors
+// Enhanced Flow Particle system with emotion-specific behaviors
 class FlowParticle {
   x: number;
   y: number;
   vx: number;
-  prevX: number;
-  prevY: number;
+  vy: number;
   maxSpeed: number;
   baseSpeed: number;
   emotionMultiplier: number;
   wobble: number;
+  prevX: number; // Previous position for trails
+  prevY: number;
+  positionUpdateCounter: number; // Counter for position update frequency
+  positionUpdateFrequency: number; // How often to update prev position
 
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
-    this.vx = 0;
-    this.vy = 0;
     this.prevX = x;
     this.prevY = y;
-    this.maxSpeed = 2;
-    this.baseSpeed = 2;
+    this.vx = 0;
+    this.vy = 0;
+    this.maxSpeed = 0.5;
+    this.baseSpeed = 0.5;
     this.emotionMultiplier = 1.0;
     this.wobble = 0;
+    this.positionUpdateCounter = 0;
+    this.positionUpdateFrequency = 5; // Update prev position every 5 frames for straight lines
   }
 
   follow(vectors: number[][][], cols: number, rows: number, scale: number) {
@@ -55,13 +61,21 @@ class FlowParticle {
   }
 
   update() {
+    // Update previous position based on frequency for straight lines
+    this.positionUpdateCounter++;
+    if (this.positionUpdateCounter >= this.positionUpdateFrequency) {
+      this.prevX = this.x;
+      this.prevY = this.y;
+      this.positionUpdateCounter = 0;
+    }
+
     this.x += this.vx * this.emotionMultiplier;
     this.y += this.vy * this.emotionMultiplier;
 
-    // Add emotion-specific wobble for certain emotions
+    // Add emotion-specific wobble for certain emotions (reduced for straighter lines)
     if (this.wobble > 0) {
-      this.x += Math.sin(Date.now() * 0.01) * this.wobble;
-      this.y += Math.cos(Date.now() * 0.01) * this.wobble;
+      this.x += Math.sin(Date.now() * 0.01) * this.wobble * 0.3; // Reduced wobble
+      this.y += Math.cos(Date.now() * 0.01) * this.wobble * 0.3; // Reduced wobble
     }
 
     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
@@ -84,31 +98,31 @@ class FlowParticle {
 
     switch (emotion) {
       case 'joy':
-        this.emotionMultiplier = (1.5 + intensity * 1.0) * confidenceEnergy; // More energetic with confidence
-        this.wobble = intensity * 0.5 * (2 - confidenceStability); // Less wobble with higher confidence
+        this.emotionMultiplier = (0.5 + intensity * 0.3) * confidenceEnergy; // Slower movement
+        this.wobble = intensity * 0.2 * (2 - confidenceStability); // Less wobble with higher confidence
         break;
       case 'anger':
-        this.emotionMultiplier = (2.0 + intensity * 1.5) * confidenceEnergy; // Focused aggression with confidence
+        this.emotionMultiplier = (0.6 + intensity * 0.4) * confidenceEnergy; // Focused but slow
         this.wobble = 0; // No wobble, controlled energy
         break;
       case 'fear':
-        this.emotionMultiplier = (1.8 + Math.random() * intensity * 2.0) * (2 - confidenceStability); // More erratic with low confidence
-        this.wobble = intensity * 1.5 * (2 - confidenceStability); // More nervous wobble with low confidence
+        this.emotionMultiplier = (0.7 + Math.random() * intensity * 0.5) * (2 - confidenceStability); // Less erratic
+        this.wobble = intensity * 0.3 * (2 - confidenceStability); // Less nervous wobble
         break;
       case 'sadness':
-        this.emotionMultiplier = (0.5 - intensity * 0.3) * confidenceStability; // More flowing with confidence
-        this.wobble = intensity * 0.2 * (2 - confidenceStability); // Gentle wobble increases with low confidence
+        this.emotionMultiplier = (0.3 - intensity * 0.1) * confidenceStability; // Very slow flowing
+        this.wobble = intensity * 0.1 * (2 - confidenceStability); // Minimal wobble
         break;
       case 'surprise':
-        this.emotionMultiplier = (1.0 + Math.random() * intensity * 3.0) * confidenceEnergy; // More controlled bursts with confidence
-        this.wobble = intensity * 0.8 * (2 - confidenceStability); // More predictable with confidence
+        this.emotionMultiplier = (0.4 + Math.random() * intensity * 0.6) * confidenceEnergy; // Controlled bursts
+        this.wobble = intensity * 0.2 * (2 - confidenceStability); // More predictable
         break;
       case 'disgust':
-        this.emotionMultiplier = (0.7 - intensity * 0.4) * confidenceStability; // More steady with confidence
-        this.wobble = intensity * 1.2 * (2 - confidenceStability); // Less uneven movement with confidence
+        this.emotionMultiplier = (0.4 - intensity * 0.1) * confidenceStability; // Steady and slow
+        this.wobble = intensity * 0.3 * (2 - confidenceStability); // Less uneven movement
         break;
       default:
-        this.emotionMultiplier = 1.0 * confidenceStability;
+        this.emotionMultiplier = 0.4 * confidenceStability; // Slow neutral movement
         this.wobble = 0;
     }
 
@@ -147,11 +161,15 @@ class FlowParticle {
   }
 }
 
-const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) => {
+const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, resetTrigger }) => {
   const timeRef = useRef(0);
   const particlesRef = useRef<FlowParticle[]>([]);
   const flowFieldRef = useRef<number[][][]>([]);
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
+
+  // Reset functionality state
+  const resetTransitionFrameRef = useRef(0);
+  const isResettingRef = useRef(false);
 
   // P5.js state sync mechanism - bridge React state to P5.js animation loop
   const sentimentDataRef = useRef(sentimentData);
@@ -160,6 +178,16 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
   useEffect(() => {
     sentimentDataRef.current = sentimentData;
   }, [sentimentData]);
+
+  // Watch for reset trigger
+  useEffect(() => {
+    if (resetTrigger && resetTrigger > 0) {
+      // Initiate reset sequence
+      isResettingRef.current = true;
+      resetTransitionFrameRef.current = 0;
+      timeRef.current = 0; // Reset time for fresh field
+    }
+  }, [resetTrigger]);
 
   const setup = (p5: P5Instance, canvasContainer: Element) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
@@ -176,7 +204,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
   };
 
   const draw = (p5: P5Instance) => {
-    timeRef.current += 0.005;
+    timeRef.current += 0.02; // 4x faster for immediate field evolution
 
     // Use synced sentiment data from React context
     const currentSentimentData = sentimentDataRef.current;
@@ -326,11 +354,44 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording }) =
     let zoff = timeRef.current * flowParams.timeScale;
     const increment = flowParams.increment;
 
-    // Clear background with fade effect
-    if (isRecording) {
-      p5.background(0, 10);
+    // Clear background with reset transition or normal fade
+    if (isResettingRef.current) {
+      // Reset transition sequence over 8-10 frames
+      if (resetTransitionFrameRef.current === 0) {
+        p5.background(0); // Complete clear
+      } else if (resetTransitionFrameRef.current === 1) {
+        p5.background(0, 25); // Very dark
+      } else if (resetTransitionFrameRef.current === 2) {
+        p5.background(0, 20);
+      } else if (resetTransitionFrameRef.current === 3) {
+        p5.background(0, 15);
+      } else if (resetTransitionFrameRef.current === 4) {
+        p5.background(0, 12);
+      } else if (resetTransitionFrameRef.current === 5) {
+        p5.background(0, 10);
+      } else if (resetTransitionFrameRef.current === 6) {
+        p5.background(0, 8);
+      } else if (resetTransitionFrameRef.current === 7) {
+        p5.background(0, 6);
+      } else if (resetTransitionFrameRef.current === 8) {
+        p5.background(0, 4);
+      } else if (resetTransitionFrameRef.current === 9) {
+        p5.background(0, 3);
+      } else {
+        // End reset transition
+        isResettingRef.current = false;
+        resetTransitionFrameRef.current = 0;
+        return; // Skip frame to avoid conflicts
+      }
+
+      resetTransitionFrameRef.current++;
     } else {
-      p5.background(0, 2);
+      // Normal background fade (reduced for longer line persistence)
+      if (isRecording) {
+        p5.background(0, 3);
+      } else {
+        p5.background(0, 1);
+      }
     }
 
     // Generate emotion-specific flow field

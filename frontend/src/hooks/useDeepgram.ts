@@ -173,7 +173,6 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       });
 
       connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log('🔌 Deepgram connection closed');
         info('Connection Closed', 'Speech recognition connection has ended');
         setConnectionState(prev => ({
           ...prev,
@@ -181,15 +180,7 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
         }));
       });
 
-      // Additional event handlers for better debugging
-      connection.on(LiveTranscriptionEvents.Metadata, (data: any) => {
-        console.log('📊 Deepgram metadata received:', data);
-      });
-
-      connection.on(LiveTranscriptionEvents.SpeechStarted, () => {
-        console.log('🎤 Speech detected');
-      });
-
+      
       // Request microphone access with optimal settings
       console.log('Requesting microphone access...');
       let stream: MediaStream;
@@ -280,7 +271,6 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       source.connect(processor);
       processor.connect(audioContext.destination);
 
-      console.log('🚀 Web Audio API pipeline active and sending PCM audio to Deepgram...');
       transcriptCountRef.current = 0; // Reset transcript count
       recordingStarted('excellent'); // TODO: Determine actual connection quality based on audio level
 
@@ -355,14 +345,12 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
 
     // Stop microphone stream
     if (streamRef.current) {
-      console.log('🎤 Stopping microphone stream');
-      streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current.getTracks().forEach(track => track.stop());
     }
 
     // Close Deepgram connection properly using SDK v4 method
     if (deepgramRef.current) {
-      console.log('🔌 Closing Deepgram connection');
-      try {
+            try {
         deepgramRef.current.requestClose();
       } catch (error) {
         console.error('Error closing Deepgram connection:', error);
