@@ -78,131 +78,58 @@ const KeywordBubble: React.FC<{
 
   const colors = getEmotionColors();
 
-  // Emotion-responsive animation variants
-  const getEmotionSpecificAnimations = () => {
-    const baseDelay = index * 0.25;
-    const intensityMultiplier = 1 + colors.intensity * 0.5;
-
-    // Emotion-specific animation parameters
-    const getEmotionParams = () => {
-      switch (colors.dominantEmotion) {
-        case 'joy':
-          return {
-            entranceDuration: 0.8, // Bouncy, quick entrance
-            exitDuration: 0.6,
-            hoverScale: 1.08,
-            hoverY: -3,
-            entranceScale: [0.6, 1.1, 1], // Bouncy effect
-          };
-        case 'anger':
-          return {
-            entranceDuration: 0.5, // Sharp, aggressive entrance
-            exitDuration: 0.3,
-            hoverScale: 1.06,
-            hoverY: -1,
-            entranceScale: [0.8, 1.05, 1], // Sharp snap
-          };
-        case 'fear':
-          return {
-            entranceDuration: 1.0, // Hesitant, trembling entrance
-            exitDuration: 0.8,
-            hoverScale: 1.03,
-            hoverY: -1,
-            entranceScale: [0.7, 1.02, 0.98, 1], // Trembling effect
-          };
-        case 'sadness':
-          return {
-            entranceDuration: 1.5, // Slow, flowing entrance
-            exitDuration: 1.2,
-            hoverScale: 1.02,
-            hoverY: -0.5,
-            entranceScale: [0.5, 0.8, 1], // Gradual growth
-          };
-        case 'surprise':
-          return {
-            entranceDuration: 0.4, // Sudden burst entrance
-            exitDuration: 0.6,
-            hoverScale: 1.12,
-            hoverY: -4,
-            entranceScale: [0.9, 1.15, 1], // Burst effect
-          };
-        case 'disgust':
-          return {
-            entranceDuration: 1.1, // Reluctant, uneven entrance
-            exitDuration: 0.9,
-            hoverScale: 1.01,
-            hoverY: -0.5,
-            entranceScale: [0.6, 0.85, 0.95, 1], // Uneven growth
-          };
-        default:
-          return {
-            entranceDuration: 1.2,
-            exitDuration: 0.8,
-            hoverScale: 1.05,
-            hoverY: -2,
-            entranceScale: [0.8, 1], // Smooth entrance
-          };
-      }
-    };
-
-    const emotionParams = getEmotionParams();
+  // Smooth animation variants
+  const getSmoothAnimations = () => {
+    const baseDelay = index * 0.12;
 
     return {
       hidden: {
-        y: 150,
+        y: 20,
         opacity: 0,
-        scale: emotionParams.entranceScale[0],
-        filter: "blur(0.25rem)",
-        rotate: colors.dominantEmotion === 'surprise' ? Math.random() * 10 - 5 : 0,
+        scale: 0.85,
+        filter: "blur(3px)",
       },
       visible: {
         y: 0,
         opacity: 1,
-        scale: emotionParams.entranceScale[emotionParams.entranceScale.length - 1],
-        filter: "blur(0rem)",
-        rotate: 0,
+        scale: 1,
+        filter: "blur(0px)",
         transition: {
           type: "tween",
-          ease: colors.dominantEmotion === 'joy' ? [0.68, -0.55, 0.265, 1.55] : // Bouncy
-                 colors.dominantEmotion === 'anger' ? [0.25, 0.46, 0.45, 0.94] : // Sharp
-                 [0.25, 0.1, 0.25, 1], // Default smooth
-          duration: emotionParams.entranceDuration / intensityMultiplier,
+          ease: [0.25, 0.1, 0.25, 1],
+          duration: 0.6,
           delay: baseDelay,
-          scale: { duration: emotionParams.entranceDuration / intensityMultiplier },
-          rotate: { duration: 0.3 },
         }
       },
       hover: {
-        scale: emotionParams.hoverScale,
-        y: emotionParams.hoverY,
+        scale: 1.05,
         filter: `brightness(${1.1 + colors.intensity * 0.2})`,
         transition: {
           type: "tween",
-          ease: "easeInOut",
-          duration: colors.dominantEmotion === 'surprise' ? 0.2 : 0.4,
+          ease: [0.25, 0.1, 0.25, 1],
+          duration: 0.3,
         }
       },
       tap: {
-        scale: emotionParams.hoverScale * 0.9,
-        y: 0,
+        scale: 0.95,
         transition: {
           type: "tween",
-          duration: 0.1,
+          duration: 0.15,
         }
       },
       sentimentChange: {
-        scale: [1, 1.12 * intensityMultiplier, 1],
-        filter: ["brightness(1)", `brightness(${1.2 + colors.intensity * 0.3})`, "brightness(1)"],
+        scale: [1, 1.1 * (1 + colors.intensity * 0.2), 1],
+        filter: ["brightness(1)", `brightness(${1.1 + colors.intensity * 0.3})`, "brightness(1)"],
         transition: {
           type: "tween",
           duration: 0.8,
-          ease: "easeInOut"
+          ease: [0.25, 0.1, 0.25, 1]
         }
       }
     };
   };
 
-  const variants = getEmotionSpecificAnimations();
+  const variants = getSmoothAnimations();
 
   return (
     <motion.div
@@ -278,7 +205,7 @@ const KeywordsDisplay: React.FC<KeywordsDisplayProps> = ({ keywords, sentiment, 
       opacity: 1,
       transition: {
         delayChildren: 0.3,
-        staggerChildren: 0.1
+        staggerChildren: 0.12
       }
     }
   };
