@@ -3,6 +3,8 @@ import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk';
 import { ClientOptions } from '@deepgram/sdk';
 import { TranscriptSegment, ConnectionState } from '../types';
 import { useToast } from './useToast';
+import { retryWithBackoff, networkMonitor } from '../utils/networkUtils';
+import { enhanceError } from '../types/errors';
 
 interface UseDeepgramOptions {
   onTranscript?: (transcript: TranscriptSegment) => void;
@@ -24,6 +26,13 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const transcriptCountRef = useRef<number>(0);
+
+  // Reconnection state
+  const reconnectionAttemptsRef = useRef<number>(0);
+  const maxReconnectionAttempts = 5;
+  const baseReconnectionDelay = 2000;
+  const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isManualStopRef = useRef<boolean>(false);
 
   // Helper function to convert Float32Array to Int16Array for Deepgram compatibility
   const convertFloat32ToInt16 = (float32Array: Float32Array): Int16Array => {
@@ -47,7 +56,34 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
     return gainAppliedArray;
   };
 
+  // Simple reconnection trigger
+  const scheduleReconnection = useCallback(() => {
+    if (isManualStopRef.current || reconnectionAttemptsRef.current >= maxReconnectionAttempts) {
+      return;
+    }
+
+    reconnectionAttemptsRef.current++;
+    const delay = baseReconnectionDelay * Math.pow(2, reconnectionAttemptsRef.current - 1);
+
+    console.log(`🔄 Scheduling reconnection attempt ${reconnectionAttemptsRef.current}/${maxReconnectionAttempts} in ${delay}ms`);
+
+    reconnectionTimeoutRef.current = setTimeout(() => {
+      setConnectionState(prev => ({
+        ...prev,
+        isConnecting: true,
+        error: `Reconnecting... (${reconnectionAttemptsRef.current}/${maxReconnectionAttempts})`
+      }));
+    }, delay);
+  }, []);
+
   const startRecording = useCallback(async () => {
+    // Reset reconnection state when starting manually
+    isManualStopRef.current = false;
+    if (reconnectionTimeoutRef.current) {
+      clearTimeout(reconnectionTimeoutRef.current);
+      reconnectionTimeoutRef.current = null;
+    }
+
     try {
       const apiKey = import.meta.env.VITE_DEEPGRAM_API_KEY;
       if (!apiKey) {
@@ -162,22 +198,42 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
       connection.on(LiveTranscriptionEvents.Error, (error: any) => {
         console.error('❌ Deepgram connection error:', error);
         const errorMessage = error?.message || error || 'Unknown Deepgram error';
-        toastError('Connection Error', `Speech recognition service failed: ${errorMessage}`);
+
+        // Enhanced error handling with reconnection
+        const enhancedError = enhanceError(error);
+
         setConnectionState(prev => ({
           ...prev,
           error: `Deepgram error: ${errorMessage}`,
           isConnected: false,
           isConnecting: false,
         }));
+
+        // Only attempt reconnection for network-related errors and if not manually stopped
+        if (!isManualStopRef.current &&
+            (enhancedError.category === 'network' || enhancedError.category === 'websocket')) {
+          connectionIssue('Connection Lost', `Speech recognition connection interrupted. Attempting to reconnect...`);
+          scheduleReconnection();
+        } else {
+          toastError('Connection Error', `Speech recognition service failed: ${errorMessage}`);
+        }
+
         options.onError?.(new Error(`Deepgram connection failed: ${errorMessage}`));
       });
 
       connection.on(LiveTranscriptionEvents.Close, () => {
+        console.log('🔌 Deepgram connection closed');
         info('Connection Closed', 'Speech recognition connection has ended');
         setConnectionState(prev => ({
           ...prev,
           isConnected: false,
         }));
+
+        // Attempt reconnection if connection was closed unexpectedly
+        if (connectionState.isRecording && !isManualStopRef.current) {
+          connectionIssue('Unexpected Disconnection', 'Connection closed unexpectedly. Attempting to reconnect...');
+          scheduleReconnection();
+        }
       });
 
       
@@ -318,6 +374,17 @@ export const useDeepgram = (options: UseDeepgramOptions = {}) => {
 
   const stopRecording = useCallback(() => {
     console.log('🛑 Stopping Deepgram transcription...');
+
+    // Mark as manual stop to prevent reconnection attempts
+    isManualStopRef.current = true;
+    reconnectionAttemptsRef.current = 0;
+
+    // Clear any pending reconnection timeout
+    if (reconnectionTimeoutRef.current) {
+      clearTimeout(reconnectionTimeoutRef.current);
+      reconnectionTimeoutRef.current = null;
+    }
+
     const finalDuration = connectionState.recordingDuration || 0;
     const finalTranscriptCount = transcriptCountRef.current;
     recordingStopped(finalDuration, finalTranscriptCount);

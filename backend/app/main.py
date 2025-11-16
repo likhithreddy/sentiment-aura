@@ -2,6 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.sentiment import router as sentiment_router
 from app.core.config import settings
+from app.middleware.rateLimiter import create_rate_limiter, RateLimitMiddleware
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Sentiment Aura API",
@@ -23,8 +29,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add rate limiting middleware
+try:
+    # Create and add rate limiting middleware
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=30,
+        burst_size=10,
+        enable_queue=False
+    )
+    logger.info("Rate limiting middleware enabled")
+except Exception as e:
+    logger.error(f"Failed to initialize rate limiting middleware: {e}")
+
 # Include routers
-app.include_router(sentiment_router, tags=["sentiment"])
+app.include_router(sentiment_router, prefix="/api", tags=["sentiment"])
 
 @app.get("/")
 async def root():
