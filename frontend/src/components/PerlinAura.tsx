@@ -19,157 +19,165 @@ interface PerlinAuraProps {
   resetTrigger?: number; // Trigger reset when this value changes
 }
 
-// Enhanced Flow Particle system with emotion-specific behaviors
-class FlowParticle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  maxSpeed: number;
-  baseSpeed: number;
-  emotionMultiplier: number;
-  wobble: number;
-  prevX: number; // Previous position for trails
-  prevY: number;
-  positionUpdateCounter: number; // Counter for position update frequency
-  positionUpdateFrequency: number; // How often to update prev position
+// Wave Particle system for free-flowing movement across canvas
+class WaveParticle {
+  x: number; // Current position X
+  y: number; // Current position Y
+  vx: number; // Velocity X
+  vy: number; // Velocity Y
+  baseSpeed: number; // Base movement speed
+  waveAmplitude: number; // Wave amplitude
+  waveFrequency: number; // Wave frequency
+  confidenceMultiplier: number; // Confidence-based intensity
+  emotion: keyof typeof EMOTION_HUES; // Current emotion
 
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
-    this.prevX = x;
-    this.prevY = y;
     this.vx = 0;
     this.vy = 0;
-    this.maxSpeed = 0.5;
-    this.baseSpeed = 0.5;
-    this.emotionMultiplier = 1.0;
-    this.wobble = 0;
-    this.positionUpdateCounter = 0;
-    this.positionUpdateFrequency = 5; // Update prev position every 5 frames for straight lines
+    this.baseSpeed = 1;
+    this.waveAmplitude = 50;
+    this.waveFrequency = 0.01;
+    this.confidenceMultiplier = 1.0;
+    this.emotion = 'joy'; // Default emotion
   }
 
-  follow(vectors: number[][][], cols: number, rows: number, scale: number) {
-    const x = Math.floor(this.x / scale);
-    const y = Math.floor(this.y / scale);
-    const col = Math.min(Math.max(x, 0), cols - 1);
-    const row = Math.min(Math.max(y, 0), rows - 1);
-
-    const force = vectors[row]?.[col] || [0, 0];
-    this.vx += force[0] * 0.5;
-    this.vy += force[1] * 0.5;
-  }
-
-  update() {
-    // Update previous position based on frequency for straight lines
-    this.positionUpdateCounter++;
-    if (this.positionUpdateCounter >= this.positionUpdateFrequency) {
-      this.prevX = this.x;
-      this.prevY = this.y;
-      this.positionUpdateCounter = 0;
-    }
-
-    this.x += this.vx * this.emotionMultiplier;
-    this.y += this.vy * this.emotionMultiplier;
-
-    // Add emotion-specific wobble for certain emotions (reduced for straighter lines)
-    if (this.wobble > 0) {
-      this.x += Math.sin(Date.now() * 0.01) * this.wobble * 0.3; // Reduced wobble
-      this.y += Math.cos(Date.now() * 0.01) * this.wobble * 0.3; // Reduced wobble
-    }
-
-    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-    if (speed > this.maxSpeed) {
-      this.vx = (this.vx / speed) * this.maxSpeed;
-      this.vy = (this.vy / speed) * this.maxSpeed;
-    }
-
-    // Emotion-specific acceleration limiting
-    const damping = this.emotionMultiplier > 1.5 ? 0.98 : 0.95; // Less damping for high energy emotions
-    this.vx *= damping;
-    this.vy *= damping;
-  }
-
-  // Set emotion-specific behavior with confidence integration
-  setEmotionBehavior(emotion: keyof typeof EMOTION_HUES, intensity: number, confidence: number = 0.5) {
-    // Confidence-based modifiers
-    const confidenceStability = 0.5 + confidence * 0.5; // 0.5-1.0
-    const confidenceEnergy = 0.7 + confidence * 0.3; // 0.7-1.0
+  // Set emotion-specific wave movement patterns
+  setEmotionPattern(emotion: keyof typeof EMOTION_HUES, intensity: number, confidence: number) {
+    this.emotion = emotion;
+    this.confidenceMultiplier = 0.3 + confidence * 1.7; // Scale: 0.3-2.0 based on confidence
 
     switch (emotion) {
       case 'joy':
-        this.emotionMultiplier = (0.5 + intensity * 0.3) * confidenceEnergy; // Slower movement
-        this.wobble = intensity * 0.2 * (2 - confidenceStability); // Less wobble with higher confidence
+        this.baseSpeed = 1.5 * this.confidenceMultiplier;
+        this.waveAmplitude = 80 * this.confidenceMultiplier;
+        this.waveFrequency = 0.008; // Upward flowing waves
         break;
       case 'anger':
-        this.emotionMultiplier = (0.6 + intensity * 0.4) * confidenceEnergy; // Focused but slow
-        this.wobble = 0; // No wobble, controlled energy
+        this.baseSpeed = 3.0 * this.confidenceMultiplier;
+        this.waveAmplitude = 100 * this.confidenceMultiplier;
+        this.waveFrequency = 0.015; // Fast, sharp horizontal waves
         break;
       case 'fear':
-        this.emotionMultiplier = (0.7 + Math.random() * intensity * 0.5) * (2 - confidenceStability); // Less erratic
-        this.wobble = intensity * 0.3 * (2 - confidenceStability); // Less nervous wobble
+        this.baseSpeed = 2.5 * this.confidenceMultiplier;
+        this.waveAmplitude = 40 * this.confidenceMultiplier;
+        this.waveFrequency = 0.025; // Erratic, high-frequency small waves
         break;
       case 'sadness':
-        this.emotionMultiplier = (0.3 - intensity * 0.1) * confidenceStability; // Very slow flowing
-        this.wobble = intensity * 0.1 * (2 - confidenceStability); // Minimal wobble
+        this.baseSpeed = 0.8 * this.confidenceMultiplier;
+        this.waveAmplitude = 30 * this.confidenceMultiplier;
+        this.waveFrequency = 0.005; // Slow, downward flowing waves
         break;
       case 'surprise':
-        this.emotionMultiplier = (0.4 + Math.random() * intensity * 0.6) * confidenceEnergy; // Controlled bursts
-        this.wobble = intensity * 0.2 * (2 - confidenceStability); // More predictable
+        this.baseSpeed = 2.0 * this.confidenceMultiplier;
+        this.waveAmplitude = 120 * this.confidenceMultiplier;
+        this.waveFrequency = 0.012; // Bursting circular waves
         break;
       case 'disgust':
-        this.emotionMultiplier = (0.4 - intensity * 0.1) * confidenceStability; // Steady and slow
-        this.wobble = intensity * 0.3 * (2 - confidenceStability); // Less uneven movement
+        this.baseSpeed = 1.0 * this.confidenceMultiplier;
+        this.waveAmplitude = 60 * this.confidenceMultiplier;
+        this.waveFrequency = 0.018; // Uneven, wobbling wave patterns
         break;
       default:
-        this.emotionMultiplier = 0.4 * confidenceStability; // Slow neutral movement
-        this.wobble = 0;
+        this.baseSpeed = 1.2 * this.confidenceMultiplier;
+        this.waveAmplitude = 50 * this.confidenceMultiplier;
+        this.waveFrequency = 0.01;
     }
-
-    this.maxSpeed = this.baseSpeed * this.emotionMultiplier;
   }
 
-  edges(width: number, height: number) {
-    if (this.x < 0) {
-      this.x = width;
-      this.prevX = width;
+  // Update particle position with wave movement
+  update(p5: P5Instance, time: number, emotionIntensity: number) {
+    // Calculate wave-based movement
+    let waveX = 0, waveY = 0;
+
+    switch (this.emotion) {
+      case 'joy':
+        // Upward flowing waves
+        waveX = Math.sin(this.y * this.waveFrequency + time * 0.5) * this.waveAmplitude;
+        waveY = -Math.abs(Math.cos(this.x * this.waveFrequency * 0.7 + time)) * this.waveAmplitude * 0.5;
+        break;
+      case 'anger':
+        // Fast, sharp horizontal waves
+        waveX = Math.sin(time * 3 + this.y * this.waveFrequency) * this.waveAmplitude;
+        waveY = Math.cos(time * 2 + this.x * this.waveFrequency * 1.5) * this.waveAmplitude * 0.3;
+        break;
+      case 'fear':
+        // Erratic, high-frequency small waves
+        waveX = Math.sin(time * 5 + this.y * this.waveFrequency) * this.waveAmplitude * 0.5;
+        waveY = Math.cos(time * 4 + this.x * this.waveFrequency * 2) * this.waveAmplitude * 0.5;
+        // Add random jitter for fear
+        waveX += (p5.random(-1, 1) * this.waveAmplitude * 0.2);
+        waveY += (p5.random(-1, 1) * this.waveAmplitude * 0.2);
+        break;
+      case 'sadness':
+        // Slow, downward flowing waves
+        waveX = Math.sin(time * 0.3 + this.y * this.waveFrequency * 0.5) * this.waveAmplitude * 0.4;
+        waveY = Math.abs(Math.cos(this.x * this.waveFrequency * 0.3 + time * 0.2)) * this.waveAmplitude;
+        break;
+      case 'surprise':
+        // Bursting circular waves from random origin
+        const burstOrigin = p5.noise(time * 0.1) * p5.width;
+        const burstY = p5.noise(time * 0.1 + 100) * p5.height;
+        const distance = p5.dist(this.x, this.y, burstOrigin, burstY);
+        const burstWave = Math.sin(distance * 0.01 - time * 2) * this.waveAmplitude;
+        const angle = Math.atan2(this.y - burstY, this.x - burstOrigin);
+        waveX = Math.cos(angle) * burstWave;
+        waveY = Math.sin(angle) * burstWave;
+        break;
+      case 'disgust':
+        // Uneven, wobbling wave patterns
+        waveX = Math.sin(time + this.y * this.waveFrequency * 0.8) * this.waveAmplitude;
+        waveY = Math.cos(time * 0.7 + this.x * this.waveFrequency * 1.2) * this.waveAmplitude * 0.6;
+        break;
+      default:
+        // Gentle wave pattern
+        waveX = Math.sin(time + this.y * this.waveFrequency) * this.waveAmplitude;
+        waveY = Math.cos(time * 0.8 + this.x * this.waveFrequency) * this.waveAmplitude * 0.5;
     }
-    if (this.x > width) {
-      this.x = 0;
-      this.prevX = 0;
-    }
-    if (this.y < 0) {
-      this.y = height;
-      this.prevY = height;
-    }
-    if (this.y > height) {
-      this.y = 0;
-      this.prevY = 0;
-    }
+
+    // Apply wave movement to velocity
+    this.vx = waveX * this.baseSpeed * 0.01;
+    this.vy = waveY * this.baseSpeed * 0.01;
+
+    // Update position
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Wrap around edges for continuous flow
+    if (this.x < -50) this.x = p5.width + 50;
+    if (this.x > p5.width + 50) this.x = -50;
+    if (this.y < -50) this.y = p5.height + 50;
+    if (this.y > p5.height + 50) this.y = -50;
   }
 
   draw(p5: P5Instance, hue: number, alpha: number, saturation: number = 70, brightness: number = 90) {
+    // Size varies slightly with confidence
+    const size = 2 + this.confidenceMultiplier * 0.5;
+
     p5.push();
     p5.colorMode(p5.HSB, 360, 100, 100, 100);
-    p5.stroke(hue, saturation, brightness, alpha);
-    p5.strokeWeight(1);
-    p5.line(this.prevX, this.prevY, this.x, this.y);
+    p5.noStroke();
+    p5.fill(hue, saturation, brightness, alpha);
+    p5.circle(this.x, this.y, size);
     p5.pop();
-
-    this.prevX = this.x;
-    this.prevY = this.y;
   }
 }
 
 const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, resetTrigger }) => {
   const timeRef = useRef(0);
-  const particlesRef = useRef<FlowParticle[]>([]);
+  const particlesRef = useRef<WaveParticle[]>([]);
   const flowFieldRef = useRef<number[][][]>([]);
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
 
   // Reset functionality state
   const resetTransitionFrameRef = useRef(0);
   const isResettingRef = useRef(false);
+
+  // Wave effect state
+  const waveOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const waveTimeRef = useRef(0);
+  const previousEmotionRef = useRef<string>('');
 
   // P5.js state sync mechanism - bridge React state to P5.js animation loop
   const sentimentDataRef = useRef(sentimentData);
@@ -192,11 +200,12 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
   const setup = (p5: P5Instance, canvasContainer: Element) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
 
-    // Initialize flow field particles
-    const numParticles = 500;
+    // Initialize wave particles randomly across entire canvas
+    const numParticles = 300; // Optimized count for performance
     particlesRef.current = [];
+
     for (let i = 0; i < numParticles; i++) {
-      particlesRef.current.push(new FlowParticle(
+      particlesRef.current.push(new WaveParticle(
         p5.random(p5.width),
         p5.random(p5.height)
       ));
@@ -347,13 +356,7 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
 
     const flowParams = getEmotionFlowParams(dominantEmotion, emotionIntensity);
 
-    // Flow field setup with emotion-specific parameters
-    const scale = flowParams.scale;
-    const cols = Math.floor(p5.width / scale);
-    const rows = Math.floor(p5.height / scale);
-    let zoff = timeRef.current * flowParams.timeScale;
-    const increment = flowParams.increment;
-
+    
     // Clear background with reset transition or normal fade
     if (isResettingRef.current) {
       // Smooth exponential reset transition over 20 frames
@@ -418,73 +421,36 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
       }
     }
 
-    // Generate emotion-specific flow field
-    let yoff = 0;
-    flowFieldRef.current = [];
-    for (let y = 0; y < rows; y++) {
-      let xoff = 0;
-      flowFieldRef.current[y] = [];
-      for (let x = 0; x < cols; x++) {
-        // Apply emotion-specific angle multiplier for different motion dynamics
-        const angle = p5.noise(xoff, yoff, zoff) * p5.TWO_PI * flowParams.angleMultiplier;
-
-        // Add confidence-based emotion-specific turbulence
-        let turbulenceX = 0, turbulenceY = 0;
-        const turbulenceLevel = flowParams.turbulence || 0.1;
-
-        if (turbulenceLevel > 0.01) {
-          // Apply confidence-based turbulence
-          const turbulenceIntensity = turbulenceLevel * emotionIntensity;
-
-          if (dominantEmotion === 'anger') {
-            // Sharp, directional turbulence for anger
-            turbulenceX = (p5.random(-1, 1) * turbulenceIntensity);
-            turbulenceY = (p5.random(-1, 1) * turbulenceIntensity);
-          } else if (dominantEmotion === 'fear') {
-            // Erratic, unpredictable turbulence for fear
-            if (p5.random() < turbulenceIntensity) {
-              turbulenceX = p5.random(-2, 2) * turbulenceLevel;
-              turbulenceY = p5.random(-2, 2) * turbulenceLevel;
-            }
-          } else if (dominantEmotion === 'surprise') {
-            // Burst-like turbulence for surprise
-            if (p5.random() < turbulenceIntensity * 0.5) {
-              const burstAngle = p5.random(p5.TWO_PI);
-              const burstMagnitude = p5.random(1, 3) * turbulenceLevel;
-              turbulenceX = p5.cos(burstAngle) * burstMagnitude;
-              turbulenceY = p5.sin(burstAngle) * burstMagnitude;
-            }
-          } else {
-            // Gentle, general turbulence for other emotions
-            turbulenceX = p5.random(-0.5, 0.5) * turbulenceLevel;
-            turbulenceY = p5.random(-0.5, 0.5) * turbulenceLevel;
-          }
-        }
-
-        const v = p5.createVector(
-          p5.cos(angle) + turbulenceX,
-          p5.sin(angle) + turbulenceY
-        );
-        v.normalize(); // Keep vectors normalized for consistent flow speed
-        flowFieldRef.current[y][x] = [v.x, v.y];
-        xoff += increment;
-      }
-      yoff += increment;
+    
+    // Check for sentiment changes to trigger wave effect
+    const currentEmotion = dominantEmotion;
+    if (currentEmotion !== previousEmotionRef.current) {
+      // Sentiment changed - create new wave
+      waveOriginRef.current = {
+        x: p5.random(p5.width),
+        y: p5.random(p5.height)
+      };
+      waveTimeRef.current = 0;
+      previousEmotionRef.current = currentEmotion;
     }
 
-    // Update and draw particles with emotion-specific behaviors
+    // Update wave time
+    if (waveTimeRef.current < 2) {
+      waveTimeRef.current += 0.05; // Wave spreads over ~2 seconds
+    }
+
+    // Update and draw wave particles with confidence-based movement
     const dynamicAlpha = isRecording ? particleAlpha * (1 + energy * 0.5) : particleAlpha;
 
-    // Apply emotion-specific behaviors to particles
-    particlesRef.current.forEach((particle, index) => {
-      // Set emotion behavior with slight variations for organic movement
-      const intensityVariation = 1.0 + (index % 3 - 1) * 0.1; // ±10% variation
-      particle.setEmotionBehavior(dominantEmotion, Math.min(1.0, emotionIntensity * intensityVariation), confidence);
+    // Apply emotion patterns to particles
+    particlesRef.current.forEach((particle) => {
+      // Set emotion pattern with confidence-based intensity
+      particle.setEmotionPattern(dominantEmotion, emotionIntensity, confidence);
 
-      particle.follow(flowFieldRef.current, cols, rows, scale);
-      particle.update();
-      particle.edges(p5.width, p5.height);
+      // Update particle position with wave movement
+      particle.update(p5, timeRef.current, emotionIntensity);
 
+      // Draw the wave particle
       particle.draw(p5, baseHue, dynamicAlpha, emotionColor.saturation, emotionColor.brightness);
     });
 
