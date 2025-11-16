@@ -356,27 +356,51 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
 
     // Clear background with reset transition or normal fade
     if (isResettingRef.current) {
-      // Reset transition sequence over 8-10 frames
-      if (resetTransitionFrameRef.current === 0) {
+      // Smooth exponential reset transition over 20 frames
+      const frame = resetTransitionFrameRef.current;
+
+      if (frame === 0) {
         p5.background(0); // Complete clear
-      } else if (resetTransitionFrameRef.current === 1) {
-        p5.background(0, 25); // Very dark
-      } else if (resetTransitionFrameRef.current === 2) {
-        p5.background(0, 20);
-      } else if (resetTransitionFrameRef.current === 3) {
-        p5.background(0, 15);
-      } else if (resetTransitionFrameRef.current === 4) {
+      } else if (frame === 1) {
+        p5.background(0, 40); // Very dark
+      } else if (frame === 2) {
+        p5.background(0, 35);
+      } else if (frame === 3) {
+        p5.background(0, 30);
+      } else if (frame === 4) {
+        p5.background(0, 26);
+      } else if (frame === 5) {
+        p5.background(0, 22);
+      } else if (frame === 6) {
+        p5.background(0, 19);
+      } else if (frame === 7) {
+        p5.background(0, 16);
+      } else if (frame === 8) {
+        p5.background(0, 14);
+      } else if (frame === 9) {
         p5.background(0, 12);
-      } else if (resetTransitionFrameRef.current === 5) {
+      } else if (frame === 10) {
         p5.background(0, 10);
-      } else if (resetTransitionFrameRef.current === 6) {
+      } else if (frame === 11) {
         p5.background(0, 8);
-      } else if (resetTransitionFrameRef.current === 7) {
+      } else if (frame === 12) {
+        p5.background(0, 7);
+      } else if (frame === 13) {
         p5.background(0, 6);
-      } else if (resetTransitionFrameRef.current === 8) {
+      } else if (frame === 14) {
+        p5.background(0, 5);
+      } else if (frame === 15) {
         p5.background(0, 4);
-      } else if (resetTransitionFrameRef.current === 9) {
+      } else if (frame === 16) {
         p5.background(0, 3);
+      } else if (frame === 17) {
+        p5.background(0, 2.5);
+      } else if (frame === 18) {
+        p5.background(0, 2);
+      } else if (frame === 19) {
+        p5.background(0, 1.5);
+      } else if (frame === 20) {
+        p5.background(0, 1);
       } else {
         // End reset transition
         isResettingRef.current = false;
