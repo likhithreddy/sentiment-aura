@@ -48,7 +48,7 @@ export class ErrorRecoveryManager {
           delay: 2000,
           priority: 1,
           action: async () => {
-            console.log('🔄 Auto-retrying network connection...');
+            // Auto-retry network connection
           }
         },
         {
@@ -57,7 +57,7 @@ export class ErrorRecoveryManager {
           automatic: false,
           priority: 2,
           action: () => {
-            console.log('💡 User guidance: Check your internet connection');
+            // User guidance: Check internet connection
           }
         }
       ],
@@ -78,7 +78,7 @@ export class ErrorRecoveryManager {
           delay: 3000,
           priority: 1,
           action: async () => {
-            console.log('🎤 Auto-reconnecting microphone...');
+            // Auto-reconnect microphone
           }
         },
         {
@@ -87,7 +87,7 @@ export class ErrorRecoveryManager {
           automatic: false,
           priority: 2,
           action: () => {
-            console.log('💡 User guidance: Check microphone permissions in browser settings');
+            // User guidance: Check microphone permissions in browser settings
           }
         }
       ],
@@ -108,7 +108,7 @@ export class ErrorRecoveryManager {
           delay: 1500,
           priority: 1,
           action: async () => {
-            console.log('🤖 Auto-retrying sentiment analysis...');
+            // Auto-retry sentiment analysis
           }
         },
         {
@@ -118,7 +118,7 @@ export class ErrorRecoveryManager {
           delay: 0,
           priority: 2,
           action: () => {
-            console.log('💾 Using cached response as fallback...');
+            // Use cached response as fallback
           }
         }
       ],
@@ -139,7 +139,7 @@ export class ErrorRecoveryManager {
           delay: 5000,
           priority: 1,
           action: async () => {
-            console.log('⏳ Waiting for rate limit to reset...');
+            // Wait for rate limit to reset
           }
         }
       ],
@@ -160,7 +160,7 @@ export class ErrorRecoveryManager {
           delay: 1000,
           priority: 1,
           action: async () => {
-            console.log('⏱️ Retrying with extended timeout...');
+            // Retry with extended timeout
           }
         }
       ],
@@ -190,7 +190,6 @@ export class ErrorRecoveryManager {
 
     // Prevent concurrent recovery for same error
     if (this.activeRecoveries.has(errorKey)) {
-      console.log('⏳ Recovery already in progress for error:', errorKey);
       return false;
     }
 
@@ -198,7 +197,6 @@ export class ErrorRecoveryManager {
     const actions = customActions || strategy?.actions || error.recoveryActions;
 
     if (!actions || actions.length === 0) {
-      console.log('❌ No recovery actions available for error:', error.category);
       return false;
     }
 
@@ -207,8 +205,6 @@ export class ErrorRecoveryManager {
     try {
       // Sort actions by priority (lower number = higher priority)
       const sortedActions = actions.sort((a, b) => a.priority - b.priority);
-
-      console.log(`🔧 Executing ${sortedActions.length} recovery actions for ${error.category} error`);
 
       for (const action of sortedActions) {
         try {
@@ -219,7 +215,6 @@ export class ErrorRecoveryManager {
             const maxRetries = strategy?.maxRetries || 3;
 
             if (currentAttempts >= maxRetries) {
-              console.log(`⛔ Max retries reached for ${action.type}: ${currentAttempts}/${maxRetries}`);
               continue;
             }
 
@@ -228,25 +223,20 @@ export class ErrorRecoveryManager {
 
           // Execute delay if specified
           if (action.delay && action.delay > 0) {
-            console.log(`⏳ Waiting ${action.delay}ms before executing ${action.type}...`);
             await new Promise(resolve => setTimeout(resolve, action.delay));
           }
 
           // Execute the action
           if (action.action) {
-            console.log(`🎯 Executing recovery action: ${action.label}`);
             await action.action();
           }
 
           // If automatic action succeeded, return success
           if (action.automatic) {
-            console.log(`✅ Automatic recovery action completed: ${action.label}`);
             return true;
           }
 
         } catch (actionError) {
-          console.error(`❌ Recovery action failed: ${action.label}`, actionError);
-
           // Continue with next action for non-critical errors
           if (error.severity === ErrorSeverity.CRITICAL) {
             break;
@@ -254,11 +244,9 @@ export class ErrorRecoveryManager {
         }
       }
 
-      console.log(`🏁 Recovery execution completed for ${error.category} error`);
       return true;
 
     } catch (recoveryError) {
-      console.error('❌ Recovery process failed:', recoveryError);
       return false;
 
     } finally {
@@ -281,7 +269,6 @@ export class ErrorRecoveryManager {
       // Reset all retries
       this.retryAttempts.clear();
     }
-    console.log('🔄 Retry counters reset');
   }
 
   /**
@@ -338,7 +325,6 @@ export class ErrorRecoveryManager {
    */
   public addStrategy(key: string, strategy: RecoveryStrategy): void {
     this.strategies.set(key, strategy);
-    console.log(`📝 Added custom recovery strategy: ${key}`);
   }
 
   /**

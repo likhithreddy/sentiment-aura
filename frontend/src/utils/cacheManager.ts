@@ -324,8 +324,7 @@ export class SentimentCacheManager {
    */
   async warmCache(phrases: string[]): Promise<void> {
     // This would be implemented with API calls to pre-warm cache
-    // For now, just log that warming would happen
-    console.log(`Cache warming requested for ${phrases.length} phrases`);
+    // Cache warming implementation without console output
   }
 
   /**

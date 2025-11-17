@@ -104,9 +104,6 @@ class RateLimiter:
 
         self.last_cleanup = now
 
-        if inactive_clients:
-            logger.info(f"Cleaned up {len(inactive_clients)} inactive rate limiter clients")
-
     def is_allowed(self, request: Request) -> tuple[bool, Dict[str, Any]]:
         """
         Check if request is allowed
@@ -277,8 +274,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Rate limited
         self.stats["rate_limited"] += 1
-
-        logger.warning(f"Rate limit exceeded for client {client_id}")
 
         # Try to queue if enabled
         if self.request_queue and self.request_queue.enqueue_request(client_id, {

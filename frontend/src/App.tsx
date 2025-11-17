@@ -31,27 +31,14 @@ const App: React.FC = () => {
   const [visualizationType, setVisualizationType] = useState<VisualizationType>(VisualizationType.LINEAR_DOTS);
   const { analyzeText, clearSentimentData, sentimentData: hookSentimentData } = useSentimentAnalysis();
 
-  // Debug logging for sentiment data flow
+  // Sentiment data flow monitoring (for debugging if needed)
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('App: Sentiment data updated:', {
-        hasSentimentData: !!hookSentimentData,
-        sentimentLabel: hookSentimentData?.sentiment_label,
-        sentiment: hookSentimentData?.sentiment,
-        confidence: hookSentimentData?.confidence,
-        emotionScores: hookSentimentData?.emotion_scores,
-        keywords: hookSentimentData?.keywords?.length || 0,
-        timestamp: Date.now()
-      });
-    }
+    // Effect runs when sentiment data changes
   }, [hookSentimentData]);
 
   // Create throttled version for real-time sentiment analysis
   const throttledAnalyzeText = useMemo(() =>
     throttle((text: string) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('App: Analyzing text for sentiment:', { text, timestamp: Date.now() });
-      }
       analyzeText(text);
     }, 2000), // Max 1 call per 2 seconds to prevent API overload
   [analyzeText]
@@ -78,7 +65,7 @@ const App: React.FC = () => {
       }
     }, [analyzeText, throttledAnalyzeText]),
     onError: useCallback((error: Error) => {
-      console.error('Transcription error:', error);
+      // Handle transcription errors silently
     }, []),
   });
 
@@ -111,7 +98,6 @@ const App: React.FC = () => {
 
   const handleVisualizationChange = useCallback((type: VisualizationType) => {
     setVisualizationType(type);
-    console.log('Visualization changed to:', type);
   }, []);
 
   

@@ -348,7 +348,7 @@ export const useP5 = (options: UseP5Options = {}) => {
         // Create p5 instance
         new p5Constructor(sketch, canvasRef.current);
       } catch (error) {
-        console.error('Error loading p5:', error);
+        // Error loading p5 without console output
       }
     };
 
@@ -364,7 +364,7 @@ export const useP5 = (options: UseP5Options = {}) => {
             canvas.remove();
           }
         } catch (error) {
-          console.error('Error cleaning up p5:', error);
+          // Error cleaning up p5 without console output
         }
       }
     };

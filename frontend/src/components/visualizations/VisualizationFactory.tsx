@@ -73,18 +73,7 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
     }
   };
 
-  // Debug logging for development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('VisualizationRenderer: Sentiment data changed:', {
-      type,
-      hasSentimentData: !!sentimentData,
-      sentimentLabel: sentimentData?.sentiment_label,
-      sentiment: sentimentData?.sentiment,
-      confidence: sentimentData?.confidence,
-      emotionScores: sentimentData?.emotion_scores
-    });
-  }
-
+  
   return (
     <div className="w-full h-full">
       <Suspense fallback={<VisualizationLoader />}>
@@ -131,7 +120,6 @@ export const createVisualization = (
           );
       }
     } catch (error) {
-      console.error(`Error creating visualization ${type}:`, error);
       return <VisualizationError error={error as Error} />;
     }
   };
@@ -158,7 +146,7 @@ export class VisualizationErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Visualization Error:', error, errorInfo);
+    // Error handling without console output
   }
 
   render() {

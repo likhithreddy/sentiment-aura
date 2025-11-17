@@ -30,11 +30,8 @@ async def process_text(request: SentimentRequest):
         # Check cache first for immediate response
         cached_result = get_cached_sentiment(request.text)
         if cached_result:
-            logger.info(f"Cache hit for text: {request.text[:50]}...")
             # Convert cached dict back to SentimentResponse model
             return SentimentResponse(**cached_result)
-
-        logger.info(f"Processing text: {request.text[:50]}...")
 
         # Create the prompt for Groq
         prompt = f"""
@@ -77,7 +74,6 @@ async def process_text(request: SentimentRequest):
 
             result = json.loads(response_text)
         except json.JSONDecodeError:
-            logger.error(f"Failed to parse JSON response: {response_text}")
             # Fallback to basic analysis
             result = {
                 "sentiment": 0.0,
@@ -121,12 +117,15 @@ async def process_text(request: SentimentRequest):
         )
 
         # Cache the result for future use
-        cache_sentiment(request.text, response, ttl=600)  # Cache for 10 minutes
+        try:
+            cache_sentiment(request.text, response, ttl=600)  # Cache for 10 minutes
+        except Exception:
+            # Cache failure shouldn't break the response
+            pass
 
         return response
 
     except Exception as e:
-        logger.error(f"Error processing text: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing text: {str(e)}")
 
 @router.get("/cache/stats")
@@ -139,7 +138,6 @@ async def get_cache_stats():
             "status": "active"
         }
     except Exception as e:
-        logger.error(f"Error getting cache stats: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving cache statistics")
 
 @router.post("/cache/clear")
@@ -147,8 +145,6 @@ async def clear_cache():
     """Clear all cache entries"""
     try:
         sentiment_cache.clear()
-        logger.info("Cache cleared via API")
         return {"message": "Cache cleared successfully"}
     except Exception as e:
-        logger.error(f"Error clearing cache: {str(e)}")
         raise HTTPException(status_code=500, detail="Error clearing cache")

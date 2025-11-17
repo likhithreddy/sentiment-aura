@@ -182,25 +182,12 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
   // P5.js state sync mechanism - bridge React state to P5.js animation loop
   const sentimentDataRef = useRef(sentimentData);
 
-  // Sync React props to P5.js context with enhanced debugging and validation
+  // Sync React props to P5.js context with validation
   useEffect(() => {
-    // Debug logging for development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('LinearDots: Sentiment data sync useEffect triggered:', {
-        hasSentimentData: !!sentimentData,
-        sentimentLabel: sentimentData?.sentiment_label,
-        sentiment: sentimentData?.sentiment,
-        confidence: sentimentData?.confidence,
-        emotionScores: sentimentData?.emotion_scores,
-        timestamp: Date.now()
-      });
-    }
-
     // Validate sentiment data structure
     if (sentimentData && typeof sentimentData === 'object') {
       // Ensure emotion_scores exists and is an object
       if (!sentimentData.emotion_scores || typeof sentimentData.emotion_scores !== 'object') {
-        console.warn('LinearDots: Invalid emotion_scores in sentiment data:', sentimentData.emotion_scores);
         // Add fallback emotion_scores
         sentimentData.emotion_scores = {
           joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1

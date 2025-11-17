@@ -28,8 +28,6 @@ export const useSentimentAnalysis = () => {
     // Check cache first for immediate response
     const cachedResult = sentimentCache.get(text);
     if (cachedResult) {
-      console.log('🎯 Cache hit for sentiment analysis:', text);
-
       setSentimentData(prev => {
         // If no previous data, use cached data directly
         if (!prev) {
@@ -74,9 +72,7 @@ export const useSentimentAnalysis = () => {
     const cacheKey = createTextCacheKey(text);
 
     try {
-      console.log('🤖 Calling sentiment analysis API with text:', text);
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      console.log('📡 Backend URL:', backendUrl);
 
       // Enhanced API call with retry, timeout, and circuit breaker
       const response = await requestDeduplicator.execute(cacheKey, () =>
@@ -92,7 +88,6 @@ export const useSentimentAnalysis = () => {
             baseDelay: 1000,
             maxDelay: 8000
           }, (error, attempt) => {
-            console.log(`🔄 Retry attempt ${attempt} for sentiment analysis:`, error.userMessage);
             // Show retry notification to user
             if (attempt === 1) {
               warning('Connection Issue', 'Retrying sentiment analysis...');
@@ -141,8 +136,6 @@ export const useSentimentAnalysis = () => {
       success('Analysis Complete', `Detected ${sentimentLabel} sentiment with ${keywordsCount} keywords found.`);
 
     } catch (err) {
-      console.error('Error analyzing sentiment:', err);
-
       // Enhanced error handling
       const enhancedError = enhanceError(err);
       setError(enhancedError.userMessage);

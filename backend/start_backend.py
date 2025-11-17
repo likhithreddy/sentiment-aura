@@ -14,7 +14,7 @@ from pathlib import Path
 def check_python_version():
     """Check if Python version is compatible."""
     if sys.version_info < (3, 8):
-        print("❌ Error: Python 3.8 or higher is required.")
+        print("Error: Python 3.8 or higher is required.")
         print(f"Current version: {sys.version}")
         sys.exit(1)
 
@@ -128,7 +128,7 @@ def start_server():
 
 def main():
     """Main startup function."""
-    print("🎤 Sentiment Aura Backend Startup")
+    print("Sentiment Aura Backend Startup")
     print("=" * 50)
 
     # Change to backend directory if needed

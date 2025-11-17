@@ -52,9 +52,7 @@ class SentimentCache:
             "evictions": 0,
             "total_requests": 0
         }
-
-        # Start background cleanup task
-        asyncio.create_task(self._cleanup_task())
+        self._cleanup_task_started = False
 
     def _generate_key(self, text: str) -> str:
         """
@@ -137,7 +135,6 @@ class SentimentCache:
                 else:
                     self._update_access(exact_key)
                     self.stats["hits"] += 1
-                    logger.debug(f"Cache hit for text: {text[:50]}...")
                     return entry.data
 
             # Try similarity match
@@ -154,11 +151,9 @@ class SentimentCache:
                         if cached_text and self._calculate_similarity(text, cached_text) >= similarity_threshold:
                             self._update_access(key)
                             self.stats["hits"] += 1
-                            logger.debug(f"Fuzzy cache hit for text: {text[:50]}...")
                             return entry.data
 
             self.stats["misses"] += 1
-            logger.debug(f"Cache miss for text: {text[:50]}...")
             return None
 
     def set(self, text: str, data: Dict[str, Any], ttl: Optional[int] = None) -> None:
@@ -195,8 +190,6 @@ class SentimentCache:
             self._update_access_order(key)
             self.stats["sets"] += 1
 
-            logger.debug(f"Cached sentiment data for text: {text[:50]}...")
-
     def has(self, text: str) -> bool:
         """
         Check if text is cached
@@ -228,7 +221,6 @@ class SentimentCache:
         with self.lock:
             self.cache.clear()
             self.access_order.clear()
-            logger.info("Cache cleared")
 
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
@@ -295,7 +287,12 @@ class SentimentCache:
             lru_key = self.access_order[0]
             self._remove_entry(lru_key)
             self.stats["evictions"] += 1
-            logger.debug(f"Evicted LRU entry: {lru_key}")
+
+    async def start_cleanup_task(self) -> None:
+        """Start the background cleanup task if not already started"""
+        if not self._cleanup_task_started:
+            self._cleanup_task_started = True
+            asyncio.create_task(self._cleanup_task())
 
     async def _cleanup_task(self) -> None:
         """Background task to clean up expired entries"""
@@ -313,12 +310,7 @@ class SentimentCache:
 
                     for key in expired_keys:
                         self._remove_entry(key)
-
-                    if expired_keys:
-                        logger.info(f"Cleaned up {len(expired_keys)} expired cache entries")
-
-            except Exception as e:
-                logger.error(f"Cache cleanup error: {e}")
+            except Exception:
                 await asyncio.sleep(60)  # Wait before retrying
 
 # Global cache instance
@@ -357,8 +349,6 @@ class CacheWarmer:
         Args:
             analysis_func: Function to call for sentiment analysis
         """
-        logger.info("Starting cache warming...")
-
         for phrase in CacheWarmer.COMMON_PHRASES:
             try:
                 # Check if already cached
@@ -367,15 +357,12 @@ class CacheWarmer:
                     result = await analysis_func(phrase)
                     if result:
                         sentiment_cache.set(phrase, result, ttl=600)  # 10 minutes TTL
-                        logger.debug(f"Warmed cache for phrase: {phrase}")
 
                 # Small delay to avoid overwhelming the API
                 await asyncio.sleep(0.1)
-
-            except Exception as e:
-                logger.error(f"Failed to warm cache for phrase '{phrase}': {e}")
-
-        logger.info(f"Cache warming completed. Cache size: {sentiment_cache.get_stats()['cache_size']}")
+            except Exception:
+                # Skip phrases that fail during warming
+                continue
 
 # Utility functions
 def get_cache_stats() -> Dict[str, Any]:
@@ -393,5 +380,5 @@ def get_cached_sentiment(text: str) -> Optional[Dict[str, Any]]:
 def cache_sentiment(text: str, response: SentimentResponse, ttl: Optional[int] = None) -> None:
     """Cache sentiment response"""
     # Convert Pydantic model to dict for caching
-    data = asdict(response)
+    data = response.model_dump()
     sentiment_cache.set(text, data, ttl)
