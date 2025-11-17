@@ -81,6 +81,7 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
   const lastSentimentRef = useRef<SentimentData | null>(null);
   const timeRef = useRef(0);
   const resetTriggerRef = useRef(0);
+  const p5Ref = useRef<P5Instance | null>(null);
 
   // P5.js state sync mechanism - bridge React state to P5.js animation loop (like original PerlinAura)
   const sentimentDataRef = useRef(sentimentData);
@@ -100,6 +101,18 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
 
     sentimentDataRef.current = sentimentData;
   }, [sentimentData]);
+
+  // Control animation loop based on recording state
+  useEffect(() => {
+    // Only control animation when p5 instance is available
+    if (p5Ref.current) {
+      if (isRecording) {
+        p5Ref.current.loop(); // Start animation
+      } else {
+        p5Ref.current.noLoop(); // Stop animation
+      }
+    }
+  }, [isRecording, p5Ref]);
 
   const initializeFlowers = (p5: P5Instance) => {
     flowersRef.current = [];
@@ -133,7 +146,15 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
 
   const setup = (p5: P5Instance) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
+    p5Ref.current = p5; // Store p5 instance for animation control
     initializeFlowers(p5);
+
+    // Set initial animation state based on recording prop
+    if (isRecording) {
+      p5.loop(); // Start animation if recording
+    } else {
+      p5.noLoop(); // Stop animation if not recording
+    }
   };
 
   const draw = (p5: P5Instance) => {

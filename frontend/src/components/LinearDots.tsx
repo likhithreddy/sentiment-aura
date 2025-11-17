@@ -169,6 +169,7 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
   const particlesRef = useRef<WaveParticle[]>([]);
   const flowFieldRef = useRef<number[][][]>([]);
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
+  const p5Ref = useRef<P5Instance | null>(null);
 
   // Reset functionality state
   const resetTransitionFrameRef = useRef(0);
@@ -208,8 +209,21 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
     }
   }, [resetTrigger]);
 
+  // Control animation loop based on recording state
+  useEffect(() => {
+    // Only control animation when p5 instance is available
+    if (p5Ref.current) {
+      if (isRecording) {
+        p5Ref.current.loop(); // Start animation
+      } else {
+        p5Ref.current.noLoop(); // Stop animation
+      }
+    }
+  }, [isRecording, p5Ref]);
+
   const setup = (p5: P5Instance, canvasContainer: Element) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
+    p5Ref.current = p5; // Store p5 instance for animation control
 
     // Initialize wave particles randomly across entire canvas
     const numParticles = 300; // Optimized count for performance
@@ -220,6 +234,13 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
         p5.random(p5.width),
         p5.random(p5.height)
       ));
+    }
+
+    // Set initial animation state based on recording prop
+    if (isRecording) {
+      p5.loop(); // Start animation if recording
+    } else {
+      p5.noLoop(); // Stop animation if not recording
     }
   };
 
