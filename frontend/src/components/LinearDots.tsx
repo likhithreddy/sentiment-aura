@@ -13,7 +13,7 @@ const EMOTION_HUES = {
   disgust: 120,   // Green
 } as const;
 
-interface PerlinAuraProps {
+interface LinearDotsProps {
   sentimentData: SentimentData | null;
   isRecording: boolean;
   resetTrigger?: number; // Trigger reset when this value changes
@@ -164,7 +164,7 @@ class WaveParticle {
   }
 }
 
-const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, resetTrigger }) => {
+const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, resetTrigger }) => {
   const timeRef = useRef(0);
   const particlesRef = useRef<WaveParticle[]>([]);
   const flowFieldRef = useRef<number[][][]>([]);
@@ -182,8 +182,19 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
   // P5.js state sync mechanism - bridge React state to P5.js animation loop
   const sentimentDataRef = useRef(sentimentData);
 
-  // Sync React props to P5.js context
+  // Sync React props to P5.js context with validation
   useEffect(() => {
+    // Validate sentiment data structure
+    if (sentimentData && typeof sentimentData === 'object') {
+      // Ensure emotion_scores exists and is an object
+      if (!sentimentData.emotion_scores || typeof sentimentData.emotion_scores !== 'object') {
+        // Add fallback emotion_scores
+        sentimentData.emotion_scores = {
+          joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
+        };
+      }
+    }
+
     sentimentDataRef.current = sentimentData;
   }, [sentimentData]);
 
@@ -635,4 +646,4 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
   );
 };
 
-export default PerlinAura;
+export default LinearDots;

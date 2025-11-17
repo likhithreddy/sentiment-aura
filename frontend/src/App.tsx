@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import PerlinAura from './components/PerlinAura';
 import TranscriptDisplay from './components/TranscriptDisplay';
 import KeywordsDisplay from './components/KeywordsDisplay';
 import Controls from './components/Controls';
@@ -7,6 +6,8 @@ import ToastContainer from './components/Toast/ToastContainer';
 import { useDeepgram } from './hooks/useDeepgram';
 import { useSentimentAnalysis } from './hooks/useSentimentAnalysis';
 import { TranscriptSegment } from './types';
+import { VisualizationType } from './types/visualizations';
+import { SafeVisualizationRenderer } from './components/visualizations/VisualizationFactory';
 import './App.css';
 
 // Simple throttle implementation for API call limiting
@@ -27,7 +28,13 @@ const App: React.FC = () => {
   const [finalTranscripts, setFinalTranscripts] = useState<TranscriptSegment[]>([]);
   const [currentInterim, setCurrentInterim] = useState<TranscriptSegment | null>(null);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [visualizationType, setVisualizationType] = useState<VisualizationType>(VisualizationType.LINEAR_DOTS);
   const { analyzeText, clearSentimentData, sentimentData: hookSentimentData } = useSentimentAnalysis();
+
+  // Sentiment data flow monitoring (for debugging if needed)
+  useEffect(() => {
+    // Effect runs when sentiment data changes
+  }, [hookSentimentData]);
 
   // Create throttled version for real-time sentiment analysis
   const throttledAnalyzeText = useMemo(() =>
@@ -58,7 +65,7 @@ const App: React.FC = () => {
       }
     }, [analyzeText, throttledAnalyzeText]),
     onError: useCallback((error: Error) => {
-      console.error('Transcription error:', error);
+      // Handle transcription errors silently
     }, []),
   });
 
@@ -85,14 +92,20 @@ const App: React.FC = () => {
       deepgram.stopRecording();
     }
 
-    // Trigger PerlinAura reset
+    // Trigger visualization reset
     setResetTrigger(prev => prev + 1);
   }, [clearSentimentData, deepgram]);
+
+  const handleVisualizationChange = useCallback((type: VisualizationType) => {
+    setVisualizationType(type);
+  }, []);
 
   
   return (
     <div className="app">
-      <PerlinAura
+      {/* Dynamic Visualization Renderer */}
+      <SafeVisualizationRenderer
+        type={visualizationType}
         sentimentData={hookSentimentData}
         isRecording={deepgram.isRecording}
         resetTrigger={resetTrigger}
@@ -116,6 +129,8 @@ const App: React.FC = () => {
         onStart={handleStart}
         onStop={handleStop}
         onReset={handleReset}
+        visualizationType={visualizationType}
+        onVisualizationChange={handleVisualizationChange}
       />
 
       <ToastContainer />

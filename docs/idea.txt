@@ -1,4 +1,4 @@
-Project Brief: The Live AI-Powered "Sentiment Aura"
+Project Brief: The Live AI-Powered "Sentiment Aura" Demo
 The past 5 years of Artificial Intelligence have been all about the transformer architecture and LLMs. This is the core tech powering OpenAI, Gemini, and most other AI companies.
 At Memory Machines, we have built a new kind of AI that goes past LLMs. A new vertical in AI. We’re looking for a candidate who can build gorgeous, functional demos for our models to showcase the magic of our models.
 
