@@ -10,7 +10,7 @@
 [[redirects]]
   # Redirect API calls to the backend (Render)
   from = "/api/*"
-  to = "https://sentiment-aura.onrender.com/:splat"
+  to = "https://sentiment-aura-api.onrender.com/:splat"
   status = 200
 
 [[redirects]]
@@ -20,7 +20,7 @@
   status = 200
 
 [context.production.environment]
-  VITE_BACKEND_URL = "https://sentiment-aura.onrender.com"
+  VITE_BACKEND_URL = "https://sentiment-aura-api.onrender.com"
 
 [context.deploy-preview.environment]
-  VITE_BACKEND_URL = "https://sentiment-aura.onrender.com"
+  VITE_BACKEND_URL = "https://sentiment-aura-api.onrender.com"
