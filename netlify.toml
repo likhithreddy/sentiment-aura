@@ -1,0 +1,26 @@
+[build]
+  # Build from the frontend directory
+  base = "frontend/"
+  command = "npm run build"
+  publish = "dist/"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  # Redirect API calls to the backend (Render)
+  from = "/api/*"
+  to = "https://sentiment-aura.onrender.com/:splat"
+  status = 200
+
+[[redirects]]
+  # Handle client-side routing
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  VITE_BACKEND_URL = "https://sentiment-aura.onrender.com"
+
+[context.deploy-preview.environment]
+  VITE_BACKEND_URL = "https://sentiment-aura.onrender.com"

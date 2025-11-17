@@ -72,7 +72,10 @@ export const useSentimentAnalysis = () => {
     const cacheKey = createTextCacheKey(text);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      // Use production URL in production build, fallback to localhost for development
+      const backendUrl = import.meta.env.PROD
+        ? import.meta.env.VITE_BACKEND_URL || 'https://sentiment-aura.onrender.com'
+        : import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
       // Enhanced API call with retry, timeout, and circuit breaker
       const response = await requestDeduplicator.execute(cacheKey, () =>
