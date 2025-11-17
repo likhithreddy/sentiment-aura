@@ -43,7 +43,7 @@ except Exception as e:
     logger.error(f"Failed to initialize rate limiting middleware: {e}")
 
 # Include routers
-app.include_router(sentiment_router, prefix="/api", tags=["sentiment"])
+app.include_router(sentiment_router, tags=["sentiment"])
 
 @app.get("/")
 async def root():

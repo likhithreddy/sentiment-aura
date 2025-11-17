@@ -82,6 +82,38 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
   const timeRef = useRef(0);
   const resetTriggerRef = useRef(0);
 
+  // P5.js state sync mechanism - bridge React state to P5.js animation loop (like original PerlinAura)
+  const sentimentDataRef = useRef(sentimentData);
+
+  // Sync React props to P5.js context with enhanced debugging and validation
+  useEffect(() => {
+    // Debug logging for development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Flowers: Sentiment data sync useEffect triggered:', {
+        hasSentimentData: !!sentimentData,
+        sentimentLabel: sentimentData?.sentiment_label,
+        sentiment: sentimentData?.sentiment,
+        confidence: sentimentData?.confidence,
+        emotionScores: sentimentData?.emotion_scores,
+        timestamp: Date.now()
+      });
+    }
+
+    // Validate sentiment data structure
+    if (sentimentData && typeof sentimentData === 'object') {
+      // Ensure emotion_scores exists and is an object
+      if (!sentimentData.emotion_scores || typeof sentimentData.emotion_scores !== 'object') {
+        console.warn('Flowers: Invalid emotion_scores in sentiment data:', sentimentData.emotion_scores);
+        // Add fallback emotion_scores
+        sentimentData.emotion_scores = {
+          joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
+        };
+      }
+    }
+
+    sentimentDataRef.current = sentimentData;
+  }, [sentimentData]);
+
   const initializeFlowers = (p5: P5Instance) => {
     flowersRef.current = [];
 
@@ -123,10 +155,17 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
 
     timeRef.current += 0.01;
 
-    // Update flower colors based on sentiment data
-    if (sentimentData && sentimentData !== lastSentimentRef.current) {
-      updateFlowerColors(p5, sentimentData);
-      lastSentimentRef.current = sentimentData;
+    // Use synced sentiment data from React context (like original PerlinAura)
+    const currentSentimentData = sentimentDataRef.current;
+
+    // Update flower colors based on sentiment data (continuous updates like original)
+    if (currentSentimentData) {
+      updateFlowerColors(p5, currentSentimentData);
+
+      // Add emotion-specific effects similar to original PerlinAura
+      if (isRecording && currentSentimentData.emotion_scores) {
+        drawEmotionEffects(p5, currentSentimentData.emotion_scores);
+      }
     }
 
     // Draw all flowers using the same logic as your flowers.js
@@ -157,9 +196,136 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
     }
   };
 
+  const drawEmotionEffects = (p5: P5Instance, emotionScores: any) => {
+    p5.push();
+    p5.colorMode(p5.HSB, 360, 100, 100, 100);
+
+    // Joy effect - bright particles around flowers
+    if (emotionScores.joy > 0.6 && p5.frameCount % 10 === 0) {
+      const joyIntensity = emotionScores.joy;
+      const joyHue = EMOTION_HUES.joy;
+
+      for (let i = 0; i < 3; i++) {
+        const x = p5.random(p5.width);
+        const y = p5.random(p5.height);
+        p5.noStroke();
+        p5.fill(joyHue, 80 + joyIntensity * 20, 90 + joyIntensity * 10, 20 + joyIntensity * 30);
+        p5.circle(x, y, 2 + p5.random(4 * joyIntensity));
+      }
+    }
+
+    // Anger effect - sharp lines cutting through flowers
+    if (emotionScores.anger > 0.7 && p5.frameCount % 30 === 0) {
+      const angerIntensity = emotionScores.anger;
+      const angerHue = EMOTION_HUES.anger;
+
+      p5.stroke(angerHue, 70 + angerIntensity * 30, 50 + angerIntensity * 20, 10 + angerIntensity * 15);
+      p5.strokeWeight(1 + angerIntensity * 0.5);
+      p5.noFill();
+      p5.beginShape();
+
+      let x = p5.random(p5.width);
+      let y = 0;
+      p5.vertex(x, y);
+      for (let j = 0; j < 3; j++) {
+        x += p5.random(-50 * angerIntensity, 50 * angerIntensity);
+        y += p5.height / 3;
+        p5.vertex(x, y);
+      }
+      p5.endShape();
+    }
+
+    // Fear effect - trembling particles
+    if (emotionScores.fear > 0.6 && p5.frameCount % 15 === 0) {
+      const fearIntensity = emotionScores.fear;
+      const fearHue = EMOTION_HUES.fear;
+
+      for (let i = 0; i < 4; i++) {
+        const x = p5.random(p5.width);
+        const y = p5.random(p5.height);
+        p5.noStroke();
+        p5.fill(fearHue, 60 + fearIntensity * 25, 40 + fearIntensity * 30, 15 + fearIntensity * 20);
+
+        // Trembling effect
+        const trembleX = p5.random(-3, 3) * fearIntensity;
+        const trembleY = p5.random(-3, 3) * fearIntensity;
+        p5.circle(x + trembleX, y + trembleY, 1 + p5.random(3 * fearIntensity));
+      }
+    }
+
+    // Sadness effect - falling droplets
+    if (emotionScores.sadness > 0.7 && p5.frameCount % 40 === 0) {
+      const sadnessIntensity = emotionScores.sadness;
+      const sadnessHue = EMOTION_HUES.sadness;
+
+      p5.noStroke();
+      p5.fill(sadnessHue, 50 + sadnessIntensity * 20, 30 + sadnessIntensity * 20, 10 + sadnessIntensity * 15);
+
+      for (let i = 0; i < 2; i++) {
+        const x = p5.random(p5.width);
+        const y = (p5.frameCount % 60) * 3;
+        p5.circle(x, y, 1 + p5.random(2) * sadnessIntensity);
+      }
+    }
+
+    // Surprise effect - burst patterns
+    if (emotionScores.surprise > 0.8 && p5.frameCount % 25 === 0) {
+      const surpriseIntensity = emotionScores.surprise;
+      const surpriseHue = EMOTION_HUES.surprise;
+      const burstX = p5.random(p5.width);
+      const burstY = p5.random(p5.height);
+
+      p5.noStroke();
+      p5.fill(surpriseHue, 70 + surpriseIntensity * 30, 85 + surpriseIntensity * 15, 25 + surpriseIntensity * 35);
+
+      // Burst pattern
+      for (let i = 0; i < 8; i++) {
+        const angle = (p5.TWO_PI / 8) * i;
+        const distance = 8 + p5.random(15) * surpriseIntensity;
+        const x = burstX + p5.cos(angle) * distance;
+        const y = burstY + p5.sin(angle) * distance;
+        p5.circle(x, y, 1 + p5.random(3) * surpriseIntensity);
+      }
+    }
+
+    // Disgust effect - disrupted, wavy patterns
+    if (emotionScores.disgust > 0.6 && p5.frameCount % 35 === 0) {
+      const disgustIntensity = emotionScores.disgust;
+      const disgustHue = EMOTION_HUES.disgust;
+
+      p5.stroke(disgustHue, 40 + disgustIntensity * 20, 35 + disgustIntensity * 25, 8 + disgustIntensity * 12);
+      p5.strokeWeight(1);
+      p5.noFill();
+      p5.beginShape();
+
+      // Wavy, disrupted line
+      const startX = p5.random(p5.width);
+      const startY = p5.random(p5.height);
+      p5.vertex(startX, startY);
+
+      for (let j = 0; j < 5; j++) {
+        const waveX = startX + j * 20 * disgustIntensity + p5.sin(j * 0.5 + timeRef.current * 2) * 10 * disgustIntensity;
+        const waveY = startY + j * 15 * disgustIntensity + p5.cos(j * 0.7 + timeRef.current * 1.5) * 8 * disgustIntensity;
+        p5.vertex(waveX, waveY);
+      }
+      p5.endShape();
+    }
+
+    p5.pop();
+  };
+
   const drawRecordingIndicator = (p5: P5Instance) => {
-    p5.noFill();
-    p5.stroke(255, 100, 100, 150);
+    const currentSentimentData = sentimentDataRef.current;
+    const emotionColor = currentSentimentData ? getTemporalEmotionColor(currentSentimentData) : null;
+
+    // Use emotion-based color for recording indicator
+    if (emotionColor) {
+      p5.noFill();
+      p5.stroke(emotionColor.hue, emotionColor.saturation, emotionColor.brightness, emotionColor.alpha * 100);
+    } else {
+      p5.noFill();
+      p5.stroke(255, 100, 100, 150);
+    }
     p5.strokeWeight(2);
 
     // Pulsing circle to indicate recording

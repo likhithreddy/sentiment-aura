@@ -34,11 +34,17 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
   isRecording,
   resetTrigger
 }) => {
+  // Create a stable key that changes when sentiment data changes to force re-rendering
+  const sentimentKey = sentimentData
+    ? `${sentimentData.sentiment || 0}-${sentimentData.sentiment_label || 'neutral'}-${sentimentData.confidence || 0}-${JSON.stringify(sentimentData.emotion_scores || {}).slice(0, 50)}`
+    : 'no-sentiment';
+
   const renderVisualization = () => {
     switch (type) {
       case VisualizationType.LINEAR_DOTS:
         return (
           <LinearDots
+            key={`${type}-${sentimentKey}-${resetTrigger}`}
             sentimentData={sentimentData}
             isRecording={isRecording}
             resetTrigger={resetTrigger}
@@ -48,6 +54,7 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
       case VisualizationType.FLOWERS:
         return (
           <Flowers
+            key={`${type}-${sentimentKey}-${resetTrigger}`}
             sentimentData={sentimentData}
             isRecording={isRecording}
             resetTrigger={resetTrigger}
@@ -65,6 +72,18 @@ export const VisualizationRenderer: React.FC<VisualizationRendererProps> = ({
         );
     }
   };
+
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('VisualizationRenderer: Sentiment data changed:', {
+      type,
+      hasSentimentData: !!sentimentData,
+      sentimentLabel: sentimentData?.sentiment_label,
+      sentiment: sentimentData?.sentiment,
+      confidence: sentimentData?.confidence,
+      emotionScores: sentimentData?.emotion_scores
+    });
+  }
 
   return (
     <div className="w-full h-full">
