@@ -30,12 +30,12 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({ transcripts, inte
   }
 
   // Use fixed duration for consistent animation speed without restarts
-  const duration = 60; // Fixed 60 seconds for smooth continuous scrolling
+  const duration = 30; // Fixed 30 seconds for smooth continuous scrolling
 
   // Framer Motion variants for the ticker animation
   const tickerVariants = {
     animate: {
-      x: ["100%", "-100%"],
+      x: ["100%", "0%"],
       transition: {
         x: {
           duration: duration,

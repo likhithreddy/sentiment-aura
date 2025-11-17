@@ -1,12 +1,13 @@
 /**
  * Flowers Visualization Component
- * Organic flower shapes that respond to emotions using noise-based distortion
+ * Organic flower shapes with continuous wave-based movement (like test.js)
  */
 
 import React, { useRef, useEffect } from 'react';
 import { SentimentData } from '../../types';
 import { useP5, P5Instance } from '../../hooks/useP5';
 import { getTemporalEmotionColor, getDominantEmotion, getEmotionIntensity } from '../../utils/emotionUtils';
+import { WaveParticle, EMOTION_HUES, EmotionType } from '../../utils/waveParticle';
 
 // P5.js constants (these are normally provided by p5)
 const TWO_PI = Math.PI * 2;
@@ -17,47 +18,164 @@ interface FlowersProps {
   resetTrigger?: number;
 }
 
-// Emotion hue mapping for flowers
-const EMOTION_HUES = {
-  joy: 45,        // Yellow-Orange
-  surprise: 30,   // Orange
-  anger: 0,       // Red
-  fear: 240,      // Blue
-  sadness: 260,   // Purple-Blue
-  disgust: 120,   // Green
-} as const;
+// Flower class with continuous wave movement (simplified from test.js approach)
+class Flower {
+  x: number;        // x position of flower
+  y: number;        // y position of flower
+  radius: number;   // radius of flower
+  roughness: number; // magnitude of how much the circle is distorted
+  angle: number;    // how much to rotate the flower by
+  color: any;       // color of flower
+  sizeScale: number; // scaling factor for flower size
+  time: number;     // individual time for organic movement
 
-// Organic class based on your provided flowers.js code
-class Organic {
-  radius: number;       // radius of blob
-  xpos: number;        // x position of blob
-  ypos: number;        // y position of blob
-  roughness: number;    // magnitude of how much the circle is distorted
-  angle: number;        // how much to rotate the circle by
-  color: any;          // color of blob
-  sizeScale: number;     // scaling factor for flower size
+  // Movement properties using WaveParticle approach
+  vx: number = 0;
+  vy: number = 0;
+  baseSpeed: number;
+  waveAmplitude: number;
+  waveFrequency: number;
+  confidenceMultiplier: number;
+  emotion: EmotionType;
 
-  constructor(radius: number, xpos: number, ypos: number, roughness: number, angle: number, color: any, sizeScale: number = 2.5) {
+  constructor(x: number, y: number, radius: number, roughness: number, angle: number, color: any, sizeScale: number = 2.5) {
+    this.x = x;
+    this.y = y;
     this.radius = radius;
-    this.xpos = xpos;
-    this.ypos = ypos;
     this.roughness = roughness;
     this.angle = angle;
     this.color = color;
-    this.sizeScale = sizeScale; // 2.5x larger flowers by default
+    this.sizeScale = sizeScale;
+    this.time = Math.random() * 1000; // Random time offset
+
+    // WaveParticle movement properties
+    this.baseSpeed = 1;
+    this.waveAmplitude = 30;
+    this.waveFrequency = 0.01;
+    this.confidenceMultiplier = 1.0;
+    this.emotion = 'joy';
   }
 
-  // Show method from your flowers.js code
+  // Set emotion pattern like WaveParticle (simplified for flowers)
+  setEmotionPattern(emotion: EmotionType, intensity: number, confidence: number) {
+    this.emotion = emotion;
+    this.confidenceMultiplier = 0.5 + confidence * 1.0; // Scale: 0.5-1.5 for gentler movement
+
+    switch (emotion) {
+      case 'joy':
+        this.baseSpeed = 1.0 * this.confidenceMultiplier;
+        this.waveAmplitude = 40 * this.confidenceMultiplier;
+        this.waveFrequency = 0.008; // Upward flowing waves
+        break;
+      case 'anger':
+        this.baseSpeed = 2.0 * this.confidenceMultiplier;
+        this.waveAmplitude = 60 * this.confidenceMultiplier;
+        this.waveFrequency = 0.015; // Fast, sharp horizontal waves
+        break;
+      case 'fear':
+        this.baseSpeed = 1.5 * this.confidenceMultiplier;
+        this.waveAmplitude = 35 * this.confidenceMultiplier;
+        this.waveFrequency = 0.025; // Erratic, high-frequency small waves
+        break;
+      case 'sadness':
+        this.baseSpeed = 0.6 * this.confidenceMultiplier;
+        this.waveAmplitude = 25 * this.confidenceMultiplier;
+        this.waveFrequency = 0.005; // Slow, downward flowing waves
+        break;
+      case 'surprise':
+        this.baseSpeed = 1.8 * this.confidenceMultiplier;
+        this.waveAmplitude = 70 * this.confidenceMultiplier;
+        this.waveFrequency = 0.012; // Bursting circular waves
+        break;
+      case 'disgust':
+        this.baseSpeed = 0.8 * this.confidenceMultiplier;
+        this.waveAmplitude = 45 * this.confidenceMultiplier;
+        this.waveFrequency = 0.018; // Uneven, wobbling wave patterns
+        break;
+      default:
+        this.baseSpeed = 1.0 * this.confidenceMultiplier;
+        this.waveAmplitude = 40 * this.confidenceMultiplier;
+        this.waveFrequency = 0.01;
+    }
+  }
+
+  // Update flower position with wave movement (simplified from WaveParticle)
+  update(p5: P5Instance, globalTime: number) {
+    // Calculate wave-based movement
+    let waveX = 0, waveY = 0;
+    const localTime = globalTime + this.time;
+
+    switch (this.emotion) {
+      case 'joy':
+        // Upward flowing waves
+        waveX = Math.sin(this.y * this.waveFrequency + localTime * 0.3) * this.waveAmplitude;
+        waveY = -Math.abs(Math.cos(this.x * this.waveFrequency * 0.7 + localTime)) * this.waveAmplitude * 0.4;
+        break;
+      case 'anger':
+        // Fast, sharp horizontal waves
+        waveX = Math.sin(localTime * 2 + this.y * this.waveFrequency) * this.waveAmplitude;
+        waveY = Math.cos(localTime * 1.5 + this.x * this.waveFrequency * 1.5) * this.waveAmplitude * 0.3;
+        break;
+      case 'fear':
+        // Erratic, high-frequency small waves
+        waveX = Math.sin(localTime * 4 + this.y * this.waveFrequency) * this.waveAmplitude * 0.4;
+        waveY = Math.cos(localTime * 3 + this.x * this.waveFrequency * 2) * this.waveAmplitude * 0.4;
+        // Add small jitter for fear
+        waveX += (p5.random(-1, 1) * this.waveAmplitude * 0.1);
+        waveY += (p5.random(-1, 1) * this.waveAmplitude * 0.1);
+        break;
+      case 'sadness':
+        // Slow, downward flowing waves
+        waveX = Math.sin(localTime * 0.2 + this.y * this.waveFrequency * 0.5) * this.waveAmplitude * 0.3;
+        waveY = Math.abs(Math.cos(this.x * this.waveFrequency * 0.3 + localTime * 0.15)) * this.waveAmplitude;
+        break;
+      case 'surprise':
+        // Bursting circular waves from random origin
+        const burstOrigin = p5.noise(localTime * 0.1) * p5.width;
+        const burstY = p5.noise(localTime * 0.1 + 100) * p5.height;
+        const distance = p5.dist(this.x, this.y, burstOrigin, burstY);
+        const burstWave = Math.sin(distance * 0.01 - localTime * 1.5) * this.waveAmplitude;
+        const angle = Math.atan2(this.y - burstY, this.x - burstOrigin);
+        waveX = Math.cos(angle) * burstWave;
+        waveY = Math.sin(angle) * burstWave;
+        break;
+      case 'disgust':
+        // Uneven, wobbling wave patterns
+        waveX = Math.sin(localTime * 0.8 + this.y * this.waveFrequency * 0.8) * this.waveAmplitude;
+        waveY = Math.cos(localTime * 0.6 + this.x * this.waveFrequency * 1.2) * this.waveAmplitude * 0.5;
+        break;
+      default:
+        // Gentle wave pattern
+        waveX = Math.sin(localTime + this.y * this.waveFrequency) * this.waveAmplitude;
+        waveY = Math.cos(localTime * 0.7 + this.x * this.waveFrequency) * this.waveAmplitude * 0.4;
+    }
+
+    // Apply wave movement to velocity (slower for flowers)
+    this.vx = waveX * this.baseSpeed * 0.005; // Half speed of particles for gentler movement
+    this.vy = waveY * this.baseSpeed * 0.005;
+
+    // Update position
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Wrap around edges for continuous flow
+    if (this.x < -100) this.x = p5.width + 100;
+    if (this.x > p5.width + 100) this.x = -100;
+    if (this.y < -100) this.y = p5.height + 100;
+    if (this.y > p5.height + 100) this.y = -100;
+  }
+
+  // Show method from flowers.js
   show(p5: P5Instance, change: number) {
     p5.noStroke(); // no stroke for the circle
     p5.fill(this.color); // color to fill the blob
 
-    p5.push(); //we enclose things between push and pop so that all transformations within only affect items within
-    p5.translate(this.xpos, this.ypos); //move to xpos, ypos
-    p5.rotate(this.angle + change); //rotate by this.angle+change
-    p5.beginShape(); //begin a shape based on the vertex points below
+    p5.push(); // we enclose things between push and pop so that all transformations within only affect items within
+    p5.translate(this.x, this.y); // move to xpos, ypos
+    p5.rotate(this.angle + change); // rotate by this.angle+change
+    p5.beginShape(); // begin a shape based on the vertex points below
 
-    //The lines below create our vertex points (from your flowers.js)
+    // The lines below create our vertex points (from flowers.js)
     let off = 0;
     for (let i = 0; i < TWO_PI; i += 0.1) {
       const offset = p5.map(
@@ -73,48 +191,38 @@ class Organic {
       p5.vertex(x, y);
       off += 0.1;
     }
-    p5.endShape(); //end and create the shape
+    p5.endShape(); // end and create the shape
     p5.pop();
   }
 }
 
 const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrigger }) => {
-  const flowersRef = useRef<Organic[]>([]);
-  const lastSentimentRef = useRef<SentimentData | null>(null);
+  const flowersRef = useRef<Flower[]>([]);
   const timeRef = useRef(0);
-  const resetTriggerRef = useRef(0);
   const p5Ref = useRef<P5Instance | null>(null);
+  const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
+  const lastResetTriggerRef = useRef(0);
 
-  // P5.js state sync mechanism - bridge React state to P5.js animation loop (like original PerlinAura)
+  // P5.js state sync mechanism - bridge React state to P5.js animation loop (like test.js)
   const sentimentDataRef = useRef(sentimentData);
 
-  // Sync React props to P5.js context with validation
+  // Handle reset trigger - reinitialize flowers when reset occurs
   useEffect(() => {
-    // Validate sentiment data structure
-    if (sentimentData && typeof sentimentData === 'object') {
-      // Ensure emotion_scores exists and is an object
-      if (!sentimentData.emotion_scores || typeof sentimentData.emotion_scores !== 'object') {
-        // Add fallback emotion_scores
-        sentimentData.emotion_scores = {
-          joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
-        };
-      }
-    }
+    if (resetTrigger && resetTrigger !== lastResetTriggerRef.current && p5Ref.current) {
+      // Clear previous state to prevent stale data
+      timeRef.current = 0;
+      previousColorRef.current = null;
+      lastResetTriggerRef.current = resetTrigger;
 
+      // Reinitialize flowers
+      initializeFlowers(p5Ref.current);
+    }
+  }, [resetTrigger]);
+
+  // Sync React props to P5.js context
+  useEffect(() => {
     sentimentDataRef.current = sentimentData;
   }, [sentimentData]);
-
-  // Control animation loop based on recording state
-  useEffect(() => {
-    // Only control animation when p5 instance is available
-    if (p5Ref.current) {
-      if (isRecording) {
-        p5Ref.current.loop(); // Start animation
-      } else {
-        p5Ref.current.noLoop(); // Stop animation
-      }
-    }
-  }, [isRecording, p5Ref]);
 
   const initializeFlowers = (p5: P5Instance) => {
     flowersRef.current = [];
@@ -139,9 +247,9 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
       p5.color(87, 199, 255, 40),   // Sky blue
     ];
 
-    // Create 110 organics as in your flowers.js with enhanced colors and size
-    for (let i = 0; i < 110; i++) {
-      const radius = 0.1 + 1 * i;
+    // Create 150 flowers with enhanced colors and size
+    for (let i = 0; i < 150; i++) {
+      const radius = 0.1 + 1.2 * i;
       const x = p5.width / 2;
       const y = p5.height / 2;
       const roughness = i * 1;
@@ -149,7 +257,7 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
       const color = colorsPalette[p5.floor(p5.random(16))]; // Use enhanced 16-color palette
 
       flowersRef.current.push(
-        new Organic(radius, x, y, roughness, angle, color, 2.5) // Apply 2.5x size scaling
+        new Flower(x, y, radius, roughness, angle, color, 2.5) // Apply 2.5x size scaling
       );
     }
   };
@@ -159,72 +267,107 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
     p5Ref.current = p5; // Store p5 instance for animation control
     initializeFlowers(p5);
 
-    // Set initial animation state based on recording prop
-    if (isRecording) {
-      p5.loop(); // Start animation if recording
-    } else {
-      p5.noLoop(); // Stop animation if not recording
-    }
+    // Always start animation for continuous flower movement (like test.js)
+    p5.loop(); // Start animation continuously
   };
 
   const draw = (p5: P5Instance) => {
-    // Background - soft purple tone matching your original code
-    p5.background(232, 218, 239);
+    timeRef.current += 0.02; // Same time progression as test.js
 
-    timeRef.current += 0.01;
-
-    // Use synced sentiment data from React context (like original PerlinAura)
+    // Use synced sentiment data from React context (like test.js)
     const currentSentimentData = sentimentDataRef.current;
+    const emotionScores = currentSentimentData?.emotion_scores || {
+      joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
+    };
 
-    // Update flower colors based on sentiment data (continuous updates like original)
-    if (currentSentimentData) {
-      updateFlowerColors(p5, currentSentimentData);
+    // Advanced temporal HSB color system based on emotion scores and history (like test.js)
+    let emotionColor;
 
-      // Add emotion-specific effects similar to original PerlinAura
-      if (isRecording && currentSentimentData.emotion_scores) {
-        drawEmotionEffects(p5, currentSentimentData.emotion_scores);
-      }
+    // Check if we have valid sentiment data (using synced data)
+    const hasValidEmotionData = currentSentimentData &&
+      typeof currentSentimentData === 'object' &&
+      'emotion_scores' in currentSentimentData &&
+      typeof currentSentimentData.emotion_scores === 'object' &&
+      currentSentimentData.emotion_scores !== null;
+
+    // Only call if we have valid sentiment data
+    if (hasValidEmotionData) {
+      emotionColor = getTemporalEmotionColor(currentSentimentData, previousColorRef.current);
+      // Update previous color for next frame's temporal evolution
+      previousColorRef.current = {
+        hue: emotionColor.hue,
+        saturation: emotionColor.saturation,
+        brightness: emotionColor.brightness
+      };
+    } else {
+      // Use default neutral colors when no sentiment data (like test.js)
+      emotionColor = {
+        hue: 180, // Cyan
+        saturation: 75,
+        brightness: 85,
+        alpha: 0.9,
+        confidence: 0.5,
+        intensity: 0.5,
+        stability: 0.5,
+        sharpness: 0.5,
+        temporalMomentum: 0,
+        transitionSpeed: 1.0,
+        emotionTrend: 'joy' as const,
+        trendIntensity: 0.5
+      };
     }
 
-    // Draw all flowers using the same logic as your flowers.js
+    // Get dominant emotion for motion dynamics (like test.js)
+    const dominantEmotion = getDominantEmotion(emotionScores);
+    const emotionIntensity = getEmotionIntensity(emotionScores);
+
+    // Background - gentle fade for trail effect (black like LinearDots)
+    p5.background(0, 0, 0, 25); // Very gentle fade for trail effect
+
+    // Update all flowers with continuous wave movement (like test.js)
+    flowersRef.current.forEach((flower) => {
+      // Set emotion pattern with continuous updates (no resets)
+      flower.setEmotionPattern(dominantEmotion, emotionIntensity, emotionColor.confidence);
+
+      // Update flower position with wave movement
+      flower.update(p5, timeRef.current);
+    });
+
+    // Update flower colors based on sentiment data (continuous updates like test.js)
+    updateFlowerColors(p5, currentSentimentData);
+
+    // Draw all flowers with continuous wave movement
     for (const flower of flowersRef.current) {
       flower.show(p5, timeRef.current);
     }
 
-    // Add subtle recording indicator
-    if (isRecording) {
-      drawRecordingIndicator(p5);
+    // Add emotion-specific effects (like test.js)
+    if (isRecording && hasValidEmotionData) {
+      drawEmotionEffects(p5, emotionScores);
     }
   };
 
   const updateFlowerColors = (p5: P5Instance, sentimentData: SentimentData) => {
     if (!sentimentData || !sentimentData.emotion_scores) return;
 
-    const emotionColor = getTemporalEmotionColor(sentimentData);
+    // Use temporal emotion color system like test.js
+    const emotionColor = getTemporalEmotionColor(sentimentData, previousColorRef.current);
+
     const dominantEmotion = getDominantEmotion(sentimentData);
 
     // Update flower colors based on emotion with unique variations for each flower
     flowersRef.current.forEach((flower, index) => {
       const baseHue = EMOTION_HUES[dominantEmotion as keyof typeof EMOTION_HUES] || emotionColor.hue;
 
-      // Create unique hue variations within the emotion family
-      const hueVariation = (index * 3) % 30 - 15; // ±15 degrees variation
+      // Gentle hue variations within emotion family for smooth transitions
+      const hueVariation = (index * 3) % 20 - 10; // ±10 degrees for smoother transitions
       const hue = (baseHue + hueVariation + 360) % 360;
 
-      // Create saturation variations
-      const saturationVariation = (index * 2) % 20 - 10; // ±10% variation
-      const saturation = Math.max(40, Math.min(90, emotionColor.saturation + saturationVariation));
+      // Smooth saturation transitions
+      const saturation = emotionColor.saturation * 0.9;
+      const brightness = emotionColor.brightness * 0.9;
+      const alpha = emotionColor.alpha * 255 * 0.7;
 
-      // Create brightness variations
-      const brightnessVariation = (index * 1.5) % 15 - 7.5; // ±7.5% variation
-      const brightness = Math.max(30, Math.min(95, emotionColor.brightness + brightnessVariation));
-
-      // Create alpha variations based on flower size and confidence
-      const baseAlpha = 150 + sentimentData.confidence * 100; // 150-250
-      const alphaVariation = (index % 3) * 20 - 20; // -20 to +20
-      const alpha = Math.max(60, Math.min(255, baseAlpha + alphaVariation));
-
-      // Create P5 color from HSB values with rich variations
       flower.color = p5.color(`hsb(${hue}, ${saturation}%, ${brightness}%, ${alpha})`);
     });
   };
@@ -245,27 +388,6 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
         p5.fill(joyHue, 80 + joyIntensity * 20, 90 + joyIntensity * 10, 20 + joyIntensity * 30);
         p5.circle(x, y, 2 + p5.random(4 * joyIntensity));
       }
-    }
-
-    // Anger effect - sharp lines cutting through flowers
-    if (emotionScores.anger > 0.7 && p5.frameCount % 30 === 0) {
-      const angerIntensity = emotionScores.anger;
-      const angerHue = EMOTION_HUES.anger;
-
-      p5.stroke(angerHue, 70 + angerIntensity * 30, 50 + angerIntensity * 20, 10 + angerIntensity * 15);
-      p5.strokeWeight(1 + angerIntensity * 0.5);
-      p5.noFill();
-      p5.beginShape();
-
-      let x = p5.random(p5.width);
-      let y = 0;
-      p5.vertex(x, y);
-      for (let j = 0; j < 3; j++) {
-        x += p5.random(-50 * angerIntensity, 50 * angerIntensity);
-        y += p5.height / 3;
-        p5.vertex(x, y);
-      }
-      p5.endShape();
     }
 
     // Fear effect - trembling particles
@@ -321,49 +443,7 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
       }
     }
 
-    // Disgust effect - disrupted, wavy patterns
-    if (emotionScores.disgust > 0.6 && p5.frameCount % 35 === 0) {
-      const disgustIntensity = emotionScores.disgust;
-      const disgustHue = EMOTION_HUES.disgust;
-
-      p5.stroke(disgustHue, 40 + disgustIntensity * 20, 35 + disgustIntensity * 25, 8 + disgustIntensity * 12);
-      p5.strokeWeight(1);
-      p5.noFill();
-      p5.beginShape();
-
-      // Wavy, disrupted line
-      const startX = p5.random(p5.width);
-      const startY = p5.random(p5.height);
-      p5.vertex(startX, startY);
-
-      for (let j = 0; j < 5; j++) {
-        const waveX = startX + j * 20 * disgustIntensity + p5.sin(j * 0.5 + timeRef.current * 2) * 10 * disgustIntensity;
-        const waveY = startY + j * 15 * disgustIntensity + p5.cos(j * 0.7 + timeRef.current * 1.5) * 8 * disgustIntensity;
-        p5.vertex(waveX, waveY);
-      }
-      p5.endShape();
-    }
-
     p5.pop();
-  };
-
-  const drawRecordingIndicator = (p5: P5Instance) => {
-    const currentSentimentData = sentimentDataRef.current;
-    const emotionColor = currentSentimentData ? getTemporalEmotionColor(currentSentimentData) : null;
-
-    // Use emotion-based color for recording indicator
-    if (emotionColor) {
-      p5.noFill();
-      p5.stroke(emotionColor.hue, emotionColor.saturation, emotionColor.brightness, emotionColor.alpha * 100);
-    } else {
-      p5.noFill();
-      p5.stroke(255, 100, 100, 150);
-    }
-    p5.strokeWeight(2);
-
-    // Pulsing circle to indicate recording
-    const pulseSize = 20 + Math.sin(timeRef.current * 3) * 5;
-    p5.ellipse(p5.width - 50, 50, pulseSize, pulseSize);
   };
 
   const windowResized = (p5: P5Instance) => {
@@ -371,23 +451,12 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
     initializeFlowers(p5);
   };
 
-  // Proper useP5 hook usage following the LinearDots pattern
+  // Proper useP5 hook usage (like test.js)
   const { canvasRef, p5Instance } = useP5({
     setup,
     draw,
     windowResized
   });
-
-  // Properly handle reset triggers using React patterns
-  useEffect(() => {
-    if (resetTrigger !== resetTriggerRef.current) {
-      resetTriggerRef.current = resetTrigger;
-      // Re-initialize flowers when reset is triggered
-      if (p5Instance) {
-        initializeFlowers(p5Instance);
-      }
-    }
-  }, [resetTrigger, p5Instance]);
 
   return (
     <div className="w-full h-full">
