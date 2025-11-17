@@ -34,15 +34,17 @@ class Organic {
   ypos: number;        // y position of blob
   roughness: number;    // magnitude of how much the circle is distorted
   angle: number;        // how much to rotate the circle by
-  color: any;          // color of the blob
+  color: any;          // color of blob
+  sizeScale: number;     // scaling factor for flower size
 
-  constructor(radius: number, xpos: number, ypos: number, roughness: number, angle: number, color: any) {
+  constructor(radius: number, xpos: number, ypos: number, roughness: number, angle: number, color: any, sizeScale: number = 2.5) {
     this.radius = radius;
     this.xpos = xpos;
     this.ypos = ypos;
     this.roughness = roughness;
     this.angle = angle;
     this.color = color;
+    this.sizeScale = sizeScale; // 2.5x larger flowers by default
   }
 
   // Show method from your flowers.js code
@@ -117,29 +119,37 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
   const initializeFlowers = (p5: P5Instance) => {
     flowersRef.current = [];
 
-    // Color palette from your flowers.js
+    // Enhanced color palette with richer, more vibrant colors
     const colorsPalette = [
-      p5.color(146, 167, 202, 30),
-      p5.color(186, 196, 219, 30),
-      p5.color(118, 135, 172, 30),
-      p5.color(76, 41, 81, 30),
-      p5.color(144, 62, 92, 30),
-      p5.color(178, 93, 119, 30),
-      p5.color(215, 118, 136, 30),
-      p5.color(246, 156, 164, 30),
+      p5.color(146, 167, 202, 40),  // Soft blue
+      p5.color(186, 196, 219, 40),  // Light blue
+      p5.color(118, 135, 172, 40),  // Deep blue
+      p5.color(76, 41, 81, 40),     // Deep purple
+      p5.color(144, 62, 92, 40),    // Medium purple
+      p5.color(178, 93, 119, 40),   // Rose purple
+      p5.color(215, 118, 136, 40),  // Pink
+      p5.color(246, 156, 164, 40),  // Light pink
+      p5.color(255, 198, 87, 40),   // Golden yellow
+      p5.color(255, 167, 38, 40),   // Orange
+      p5.color(255, 121, 63, 40),   // Coral
+      p5.color(255, 71, 87, 40),    // Red
+      p5.color(131, 255, 131, 40),  // Light green
+      p5.color(87, 255, 87, 40),    // Green
+      p5.color(156, 255, 255, 40),  // Cyan
+      p5.color(87, 199, 255, 40),   // Sky blue
     ];
 
-    // Create 110 organics as in your flowers.js
+    // Create 110 organics as in your flowers.js with enhanced colors and size
     for (let i = 0; i < 110; i++) {
       const radius = 0.1 + 1 * i;
       const x = p5.width / 2;
       const y = p5.height / 2;
       const roughness = i * 1;
       const angle = i * p5.random(90);
-      const color = colorsPalette[p5.floor(p5.random(8))];
+      const color = colorsPalette[p5.floor(p5.random(16))]; // Use enhanced 16-color palette
 
       flowersRef.current.push(
-        new Organic(radius, x, y, roughness, angle, color)
+        new Organic(radius, x, y, roughness, angle, color, 2.5) // Apply 2.5x size scaling
       );
     }
   };
@@ -191,17 +201,32 @@ const Flowers: React.FC<FlowersProps> = ({ sentimentData, isRecording, resetTrig
     if (!sentimentData || !sentimentData.emotion_scores) return;
 
     const emotionColor = getTemporalEmotionColor(sentimentData);
+    const dominantEmotion = getDominantEmotion(sentimentData);
 
-    // Update flower colors based on emotion
-    for (const flower of flowersRef.current) {
-      const hue = emotionColor.hue;
-      const saturation = emotionColor.saturation;
-      const brightness = emotionColor.brightness;
+    // Update flower colors based on emotion with unique variations for each flower
+    flowersRef.current.forEach((flower, index) => {
+      const baseHue = EMOTION_HUES[dominantEmotion as keyof typeof EMOTION_HUES] || emotionColor.hue;
 
-      // Create P5 color from HSB values
-      const alpha = 150 + sentimentData.confidence * 100; // 150-250
+      // Create unique hue variations within the emotion family
+      const hueVariation = (index * 3) % 30 - 15; // ±15 degrees variation
+      const hue = (baseHue + hueVariation + 360) % 360;
+
+      // Create saturation variations
+      const saturationVariation = (index * 2) % 20 - 10; // ±10% variation
+      const saturation = Math.max(40, Math.min(90, emotionColor.saturation + saturationVariation));
+
+      // Create brightness variations
+      const brightnessVariation = (index * 1.5) % 15 - 7.5; // ±7.5% variation
+      const brightness = Math.max(30, Math.min(95, emotionColor.brightness + brightnessVariation));
+
+      // Create alpha variations based on flower size and confidence
+      const baseAlpha = 150 + sentimentData.confidence * 100; // 150-250
+      const alphaVariation = (index % 3) * 20 - 20; // -20 to +20
+      const alpha = Math.max(60, Math.min(255, baseAlpha + alphaVariation));
+
+      // Create P5 color from HSB values with rich variations
       flower.color = p5.color(`hsb(${hue}, ${saturation}%, ${brightness}%, ${alpha})`);
-    }
+    });
   };
 
   const drawEmotionEffects = (p5: P5Instance, emotionScores: any) => {
