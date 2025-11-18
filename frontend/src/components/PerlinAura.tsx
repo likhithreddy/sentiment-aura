@@ -169,11 +169,9 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
   const particlesRef = useRef<WaveParticle[]>([]);
   const flowFieldRef = useRef<number[][][]>([]);
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
+  const p5Ref = useRef<P5Instance | null>(null);
 
-  // Reset functionality state
-  const resetTransitionFrameRef = useRef(0);
-  const isResettingRef = useRef(false);
-
+  
   // Wave effect state
   const waveOriginRef = useRef<{ x: number; y: number } | null>(null);
   const waveTimeRef = useRef(0);
@@ -187,18 +185,22 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
     sentimentDataRef.current = sentimentData;
   }, [sentimentData]);
 
-  // Watch for reset trigger
+  
+  // Control animation loop based on recording state
   useEffect(() => {
-    if (resetTrigger && resetTrigger > 0) {
-      // Initiate reset sequence
-      isResettingRef.current = true;
-      resetTransitionFrameRef.current = 0;
-      timeRef.current = 0; // Reset time for fresh field
+    // Only control animation when p5 instance is available
+    if (p5Ref.current) {
+      if (isRecording) {
+        p5Ref.current.loop(); // Start animation
+      } else {
+        p5Ref.current.noLoop(); // Stop animation
+      }
     }
-  }, [resetTrigger]);
+  }, [isRecording, p5Ref]);
 
   const setup = (p5: P5Instance, canvasContainer: Element) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
+    p5Ref.current = p5; // Store p5 instance for animation control
 
     // Initialize wave particles randomly across entire canvas
     const numParticles = 300; // Optimized count for performance
@@ -209,6 +211,13 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
         p5.random(p5.width),
         p5.random(p5.height)
       ));
+    }
+
+    // Set initial animation state based on recording prop
+    if (isRecording) {
+      p5.loop(); // Start animation if recording
+    } else {
+      p5.noLoop(); // Stop animation if not recording
     }
   };
 
@@ -356,69 +365,12 @@ const PerlinAura: React.FC<PerlinAuraProps> = ({ sentimentData, isRecording, res
 
     const flowParams = getEmotionFlowParams(dominantEmotion, emotionIntensity);
 
-    
-    // Clear background with reset transition or normal fade
-    if (isResettingRef.current) {
-      // Smooth exponential reset transition over 20 frames
-      const frame = resetTransitionFrameRef.current;
-
-      if (frame === 0) {
-        p5.background(0); // Complete clear
-      } else if (frame === 1) {
-        p5.background(0, 40); // Very dark
-      } else if (frame === 2) {
-        p5.background(0, 35);
-      } else if (frame === 3) {
-        p5.background(0, 30);
-      } else if (frame === 4) {
-        p5.background(0, 26);
-      } else if (frame === 5) {
-        p5.background(0, 22);
-      } else if (frame === 6) {
-        p5.background(0, 19);
-      } else if (frame === 7) {
-        p5.background(0, 16);
-      } else if (frame === 8) {
-        p5.background(0, 14);
-      } else if (frame === 9) {
-        p5.background(0, 12);
-      } else if (frame === 10) {
-        p5.background(0, 10);
-      } else if (frame === 11) {
-        p5.background(0, 8);
-      } else if (frame === 12) {
-        p5.background(0, 7);
-      } else if (frame === 13) {
-        p5.background(0, 6);
-      } else if (frame === 14) {
-        p5.background(0, 5);
-      } else if (frame === 15) {
-        p5.background(0, 4);
-      } else if (frame === 16) {
-        p5.background(0, 3);
-      } else if (frame === 17) {
-        p5.background(0, 2.5);
-      } else if (frame === 18) {
-        p5.background(0, 2);
-      } else if (frame === 19) {
-        p5.background(0, 1.5);
-      } else if (frame === 20) {
-        p5.background(0, 1);
-      } else {
-        // End reset transition
-        isResettingRef.current = false;
-        resetTransitionFrameRef.current = 0;
-        return; // Skip frame to avoid conflicts
-      }
-
-      resetTransitionFrameRef.current++;
+  
+    // Normal background fade (reduced for longer line persistence)
+    if (isRecording) {
+      p5.background(0, 3);
     } else {
-      // Normal background fade (reduced for longer line persistence)
-      if (isRecording) {
-        p5.background(0, 3);
-      } else {
-        p5.background(0, 1);
-      }
+      p5.background(0, 1);
     }
 
     
