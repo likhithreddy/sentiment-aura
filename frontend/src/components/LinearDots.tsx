@@ -170,10 +170,7 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
   const flowFieldRef = useRef<number[][][]>([]);
   const previousColorRef = useRef<{ hue: number; saturation: number; brightness: number } | null>(null);
 
-  // Reset functionality state
-  const resetTransitionFrameRef = useRef(0);
-  const isResettingRef = useRef(false);
-
+  
   // Wave effect state
   const waveOriginRef = useRef<{ x: number; y: number } | null>(null);
   const waveTimeRef = useRef(0);
@@ -184,30 +181,26 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
 
   // Sync React props to P5.js context with validation
   useEffect(() => {
-    // Validate sentiment data structure
+    // Create a safe copy of sentiment data to avoid mutations
+    let safeSentimentData = sentimentData;
+
     if (sentimentData && typeof sentimentData === 'object') {
       // Ensure emotion_scores exists and is an object
       if (!sentimentData.emotion_scores || typeof sentimentData.emotion_scores !== 'object') {
-        // Add fallback emotion_scores
-        sentimentData.emotion_scores = {
-          joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
+        // Create safe copy with fallback emotion_scores instead of mutating original
+        safeSentimentData = {
+          ...sentimentData,
+          emotion_scores: {
+            joy: 0.4, sadness: 0.2, anger: 0.1, fear: 0.1, surprise: 0.3, disgust: 0.1
+          }
         };
       }
     }
 
-    sentimentDataRef.current = sentimentData;
+    sentimentDataRef.current = safeSentimentData;
   }, [sentimentData]);
 
-  // Watch for reset trigger
-  useEffect(() => {
-    if (resetTrigger && resetTrigger > 0) {
-      // Initiate reset sequence
-      isResettingRef.current = true;
-      resetTransitionFrameRef.current = 0;
-      timeRef.current = 0; // Reset time for fresh field
-    }
-  }, [resetTrigger]);
-
+  
   const setup = (p5: P5Instance, canvasContainer: Element) => {
     p5.createCanvas(p5.windowWidth, p5.windowHeight);
 
@@ -368,68 +361,11 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
     const flowParams = getEmotionFlowParams(dominantEmotion, emotionIntensity);
 
     
-    // Clear background with reset transition or normal fade
-    if (isResettingRef.current) {
-      // Smooth exponential reset transition over 20 frames
-      const frame = resetTransitionFrameRef.current;
-
-      if (frame === 0) {
-        p5.background(0); // Complete clear
-      } else if (frame === 1) {
-        p5.background(0, 40); // Very dark
-      } else if (frame === 2) {
-        p5.background(0, 35);
-      } else if (frame === 3) {
-        p5.background(0, 30);
-      } else if (frame === 4) {
-        p5.background(0, 26);
-      } else if (frame === 5) {
-        p5.background(0, 22);
-      } else if (frame === 6) {
-        p5.background(0, 19);
-      } else if (frame === 7) {
-        p5.background(0, 16);
-      } else if (frame === 8) {
-        p5.background(0, 14);
-      } else if (frame === 9) {
-        p5.background(0, 12);
-      } else if (frame === 10) {
-        p5.background(0, 10);
-      } else if (frame === 11) {
-        p5.background(0, 8);
-      } else if (frame === 12) {
-        p5.background(0, 7);
-      } else if (frame === 13) {
-        p5.background(0, 6);
-      } else if (frame === 14) {
-        p5.background(0, 5);
-      } else if (frame === 15) {
-        p5.background(0, 4);
-      } else if (frame === 16) {
-        p5.background(0, 3);
-      } else if (frame === 17) {
-        p5.background(0, 2.5);
-      } else if (frame === 18) {
-        p5.background(0, 2);
-      } else if (frame === 19) {
-        p5.background(0, 1.5);
-      } else if (frame === 20) {
-        p5.background(0, 1);
-      } else {
-        // End reset transition
-        isResettingRef.current = false;
-        resetTransitionFrameRef.current = 0;
-        return; // Skip frame to avoid conflicts
-      }
-
-      resetTransitionFrameRef.current++;
+    // Normal background fade (reduced for longer line persistence)
+    if (isRecording) {
+      p5.background(0, 3);
     } else {
-      // Normal background fade (reduced for longer line persistence)
-      if (isRecording) {
-        p5.background(0, 3);
-      } else {
-        p5.background(0, 1);
-      }
+      p5.background(0, 1);
     }
 
     
@@ -620,7 +556,22 @@ const LinearDots: React.FC<LinearDotsProps> = ({ sentimentData, isRecording, res
   };
 
   const windowResized = (p5: P5Instance) => {
+    // Store old dimensions for position scaling
+    const oldWidth = p5.width;
+    const oldHeight = p5.height;
+
+    // Resize canvas
     p5.resizeCanvas(p5.windowWidth, p5.windowHeight);
+
+    // Calculate scaling factors to preserve particle positions
+    const scaleX = p5.width / oldWidth;
+    const scaleY = p5.height / oldHeight;
+
+    // Scale existing particle positions proportionally
+    particlesRef.current.forEach((particle) => {
+      particle.x *= scaleX;
+      particle.y *= scaleY;
+    });
   };
 
   const { canvasRef } = useP5({

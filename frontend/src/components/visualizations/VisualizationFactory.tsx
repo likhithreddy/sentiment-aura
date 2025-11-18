@@ -171,12 +171,16 @@ export const SafeVisualizationRenderer: React.FC<VisualizationRendererProps> = (
   );
 };
 
-// Registry for future visualization components
+// Enhanced Registry for future visualization components with search and discovery capabilities
 export class VisualizationRegistry {
   private static components: Map<VisualizationType, React.ComponentType<any>> = new Map();
+  private static metadata: Map<VisualizationType, { name: string; description: string; category: string }> = new Map();
 
-  static register(type: VisualizationType, component: React.ComponentType<any>): void {
+  static register(type: VisualizationType, component: React.ComponentType<any>, metadata?: { name: string; description: string; category: string }): void {
     this.components.set(type, component);
+    if (metadata) {
+      this.metadata.set(type, metadata);
+    }
   }
 
   static get(type: VisualizationType): React.ComponentType<any> | null {
@@ -190,8 +194,77 @@ export class VisualizationRegistry {
   static getAll(): Map<VisualizationType, React.ComponentType<any>> {
     return new Map(this.components);
   }
+
+  static getAllWithMetadata(): Array<{ type: VisualizationType; component: React.ComponentType<any>; metadata?: { name: string; description: string; category: string } }> {
+    const results: Array<{ type: VisualizationType; component: React.ComponentType<any>; metadata?: { name: string; description: string; category: string } }> = [];
+
+    for (const [type, component] of this.components.entries()) {
+      results.push({
+        type,
+        component,
+        metadata: this.metadata.get(type)
+      });
+    }
+
+    return results;
+  }
+
+  static search(query: string): Array<{ type: VisualizationType; component: React.ComponentType<any>; metadata?: { name: string; description: string; category: string } }> {
+    const lowerQuery = query.toLowerCase();
+    const results: Array<{ type: VisualizationType; component: React.ComponentType<any>; metadata?: { name: string; description: string; category: string } }> = [];
+
+    for (const [type, component] of this.components.entries()) {
+      const metadata = this.metadata.get(type);
+      const typeString = type.toLowerCase();
+      const nameMatch = metadata?.name.toLowerCase().includes(lowerQuery);
+      const descMatch = metadata?.description.toLowerCase().includes(lowerQuery);
+      const categoryMatch = metadata?.category.toLowerCase().includes(lowerQuery);
+      const typeMatch = typeString.includes(lowerQuery);
+
+      if (nameMatch || descMatch || categoryMatch || typeMatch) {
+        results.push({ type, component, metadata });
+      }
+    }
+
+    return results;
+  }
+
+  static findByCategory(category: string): Array<{ type: VisualizationType; component: React.ComponentType<any>; metadata?: { name: string; description: string; category: string } }> {
+    const lowerCategory = category.toLowerCase();
+    const results: Array<{ type: VisualizationType; component: React.ComponentType<any>; metadata?: { name: string; description: string; category: string } }> = [];
+
+    for (const [type, component] of this.components.entries()) {
+      const metadata = this.metadata.get(type);
+      if (metadata?.category.toLowerCase() === lowerCategory) {
+        results.push({ type, component, metadata });
+      }
+    }
+
+    return results;
+  }
+
+  static getMetadata(type: VisualizationType): { name: string; description: string; category: string } | undefined {
+    return this.metadata.get(type);
+  }
 }
 
-// Register the visualization components
-VisualizationRegistry.register(VisualizationType.LINEAR_DOTS, LinearDots as React.ComponentType<any>);
-VisualizationRegistry.register(VisualizationType.FLOWERS, Flowers as React.ComponentType<any>);
+// Register the visualization components with enhanced metadata for search and discovery
+VisualizationRegistry.register(
+  VisualizationType.LINEAR_DOTS,
+  LinearDots as React.ComponentType<any>,
+  {
+    name: "Linear Dots",
+    description: "Wave-based particle visualization with emotion-responsive movement patterns and temporal color evolution",
+    category: "particles"
+  }
+);
+
+VisualizationRegistry.register(
+  VisualizationType.FLOWERS,
+  Flowers as React.ComponentType<any>,
+  {
+    name: "Flowers",
+    description: "Organic flower shapes with continuous drift and smooth emotion-based color transitions",
+    category: "organic"
+  }
+);
