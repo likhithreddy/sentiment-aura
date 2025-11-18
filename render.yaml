@@ -14,5 +14,5 @@ services:
       - key: DEEPGRAM_API_KEY
         sync: false
       - key: FRONTEND_URL
-        value: https://sentiment-aura.netlify.app
+        value: https://sentimentaura.netlify.app
         sync: false
