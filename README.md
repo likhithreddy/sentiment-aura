@@ -2,6 +2,8 @@
 
 A real-time audio transcription and sentiment visualization application built with React and FastAPI.
 
+Deployed URL: https://sentimentaura.netlify.app/
+
 ## Overview
 
 This application captures live audio, transcribes it using Deepgram, analyzes sentiment using AI, and visualizes the emotional content through beautiful Perlin noise animations.
